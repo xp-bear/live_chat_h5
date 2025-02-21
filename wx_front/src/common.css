@@ -90,5 +90,6 @@ video {
 /* 其他重置样式 */
 @font-face {
   font-family: "pingfang";
-  src: url("https://xp-cdn-oss.oss-cn-wuhan-lr.aliyuncs.com/cookies/苹方.ttf?1739978986442");
+  /* src: url("https://xp-cdn-oss.oss-cn-wuhan-lr.aliyuncs.com/cookies/苹方.ttf?1739978986442"); */
+  src: url("./assets/font/pingfang.ttf");
 }

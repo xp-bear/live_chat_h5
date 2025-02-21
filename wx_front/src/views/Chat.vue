@@ -5,10 +5,18 @@
       <input class="search" placeholder="消息列表查询" />
       <img class="search_img" src="../assets/icons/fangdajing.svg" />
     </div>
+    <!-- tab 标签页切换 -->
+    <nut-tabs v-model="tabIndexValue" swipeable background="#ffffff" size="large">
+      <nut-tab-pane title="全部群聊" pane-key="1"> Content 1 </nut-tab-pane>
+      <nut-tab-pane title="个人单聊" pane-key="2"> Content 2 </nut-tab-pane>
+    </nut-tabs>
   </div>
 </template>
 
-<script setup></script>
+<script setup>
+import { ref } from "vue";
+const tabIndexValue = ref("1");
+</script>
 
 <style lang="scss" scoped>
 .Chat {

@@ -71,3 +71,4 @@ watch(
 
 onMounted(() => {});
 </script>
+<style lang="scss"></style>

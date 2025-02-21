@@ -10,6 +10,6 @@ import Footer from "@/components/Footer.vue";
 
 <style lang="scss">
 #app {
-  /* height: 100vh; */
+  font-family: "pingfang";
 }
 </style>
