@@ -87,6 +87,9 @@ video {
   font: inherit;
   vertical-align: baseline;
 }
+input {
+  outline: none;
+}
 /* 其他重置样式 */
 @font-face {
   font-family: "pingfang";
