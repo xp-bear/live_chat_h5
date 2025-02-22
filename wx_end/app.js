@@ -41,4 +41,4 @@ function broadcast(data, sender) {
   });
 }
 
-console.log("WebSocket 服务器运行在 ws://localhost:8080");
+console.log("WebSocket 服务器运行在 ws://127.0.0.1:5200");

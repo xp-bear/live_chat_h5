@@ -37,31 +37,47 @@
         <MoreX width="4.8vw" height="4.8vw" />
       </div>
       <!-- 内容区域 -->
-      <div class="chat_all_content">
+      <div @click="hideMenuFn" class="chat_all_content" ref="chat_all_content">
         <!-- 别人发消息 -->
-        <div class="chat_all_content_info">
+        <div class="chat_all_content_info" v-for="(message, index) in messages" :key="index" :class="{ 'my-message': message.isMine }">
           <img src="https://xp-cdn-oss.oss-cn-wuhan-lr.aliyuncs.com/cookies/头像.png?1737703342307" alt="" />
-          <div class="chat_all_content_text">你好呀</div>
+          <div class="chat_all_content_info_block">
+            <div class="chat_all_content_info_time">{{ message.username }}</div>
+            <div class="chat_all_content_text">{{ message.text }}</div>
+          </div>
         </div>
-        <!-- 我发消息 -->
-        <div class="chat_all_content_my">
-          <div class="chat_all_content_text_my">本自动换行。</div>
-          <img src="https://xp-cdn-oss.oss-cn-wuhan-lr.aliyuncs.com/cookies/头像.png?1737703342307" alt="" />
-        </div>
+        <!-- 通知消息 -->
+        <!-- <div class="chat_all_content_noitfy" >xx加入聊天</div> -->
       </div>
       <!-- 底部栏 -->
       <div class="chat_all_bottom" ref="chat_all_bottom">
         <!-- 发送消息 -->
         <div class="chat_all_bottom_list">
           <img @click="showMenuFn" src="../assets/icons/jia.svg" alt="" />
-          <input type="text" placeholder="在此处键入" />
-          <img src="../assets/icons/fasong.svg" alt="" />
+          <input v-model="messageText" type="text" placeholder="在此处键入" />
+          <img @click="sendGroupMessage" src="../assets/icons/fasong.svg" alt="" />
         </div>
         <!-- 功能区域 -->
         <div class="chat_all_bottom_tool">
           <div class="chat_all_bottom_tool_item">
             <img src="../assets/icons/lianxiren.svg" alt="" />
             <span>联系</span>
+          </div>
+          <div class="chat_all_bottom_tool_item">
+            <img src="../assets/icons/tupian.svg" alt="" />
+            <span>图片</span>
+          </div>
+          <div class="chat_all_bottom_tool_item">
+            <img src="../assets/icons/wenjian.svg" alt="" />
+            <span>文件</span>
+          </div>
+          <div class="chat_all_bottom_tool_item">
+            <img src="../assets/icons/weizhi.svg" alt="" />
+            <span>位置</span>
+          </div>
+          <div class="chat_all_bottom_tool_item">
+            <img src="../assets/icons/shengyin.svg" alt="" />
+            <span>声音</span>
           </div>
         </div>
       </div>
@@ -71,19 +87,85 @@
 
 <script setup>
 import { MoreX, RectLeft } from "@nutui/icons-vue";
-import { ref } from "vue";
+import { ref, onMounted } from "vue";
+const ws = ref(null); // websocket
+const username = ref(""); // 用户名
+const privateTo = ref(""); // 私聊对象
+const connected = ref(false); // 是否连接
+
 const tabIndexValue = ref("1"); // tab 标签页切换索引
-const chatAllPopupState = ref(true); // 群聊弹出层
+const messageText = ref(""); // 消息文本
+const messages = ref([]); // 消息列表
+
+const chatAllPopupState = ref(true); // 群聊弹出层状态
 
 const chat_all_bottom = ref(null); // 底部栏ref
+const chat_all_content = ref(null); // 内容区域ref
+
+onMounted(() => {
+  // 随机用户名
+  username.value = "用户" + Math.floor(Math.random() * 10000);
+  // 连接
+  connect();
+});
+// 连接
+function connect() {
+  if (!username.value) {
+    alert("请输入用户名");
+    return;
+  }
+  ws.value = new WebSocket("ws://127.0.0.1:5200");
+
+  ws.value.onopen = () => {
+    connected.value = true;
+    ws.value.send(JSON.stringify({ type: "join", username: username.value }));
+  };
+
+  // 广播消息
+  ws.value.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    console.log(data);
+    if (data.type === "group" || data.type === "private") {
+      // 群消息和私聊消息
+      // messages.value.push({ text: `${data.from ? data.from + ": " : ""}${data.message}`, isMine: data.from === username.value });
+      messages.value.push({ text: `${data.message}`, isMine: data.from === username.value, username: data.from });
+    }
+  };
+}
+
+// 函数 发送群聊消息
+function sendGroupMessage() {
+  if (ws.value && messageText.value) {
+    ws.value.send(JSON.stringify({ type: "group", from: username.value, message: messageText.value, username: username.value }));
+    messages.value.push({ text: messageText.value, isMine: true, username: username.value }); // 添加到消息列表 本人
+    messageText.value = "";
+  }
+}
+
+// 函数 发送私聊消息
+const sendPrivateMessage = () => {
+  if (ws.value && privateTo.value && message.value) {
+    ws.value.send(JSON.stringify({ type: "private", from: username.value, to: privateTo.value, message: message.value }));
+    messages.value.push({ text: `(私聊给 ${privateTo.value}): ${message.value}`, isMine: true });
+    message.value = "";
+  }
+};
+
+// 函数 隐藏菜单
+function hideMenuFn() {
+  // 向下移动200px
+  chat_all_bottom.value.style.transform = "translateY(26.6667vw)";
+  // 加上过渡效果
+  chat_all_bottom.value.style.transition = "all 0.3s";
+}
 
 // 函数 显示菜单
 function showMenuFn() {
   console.log(chat_all_bottom.value);
   // 向上移动200px
-  chat_all_bottom.value.style.transform = "translateY(-26.6667vw)";
+  chat_all_bottom.value.style.transform = "translateY(0)";
   // 加上过渡效果
-  chat_all_bottom.value.style.transition = "all 0.5s";
+  chat_all_bottom.value.style.transition = "all 0.3s";
 }
 
 // 函数 打开群聊弹出层
@@ -103,9 +185,18 @@ function closeChatAllPopup() {
     overflow: auto;
     padding: 3.2vw 6.4vw 0;
     box-sizing: border-box;
-
-    .chat_all_content_info,
-    .chat_all_content_my {
+    .chat_all_content_noitfy {
+      height: 5.3333vw;
+      font-size: 4vw;
+      font-weight: 400;
+      letter-spacing: 0px;
+      line-height: 5.3333vw;
+      color: rgba(175, 175, 175, 1);
+      text-align: center;
+      vertical-align: top;
+      margin-bottom: 2.6667vw;
+    }
+    .chat_all_content_info {
       display: flex;
       align-items: flex-start;
       margin-bottom: 3.2vw;
@@ -116,6 +207,7 @@ function closeChatAllPopup() {
         margin-right: 2.1333vw;
       }
       .chat_all_content_text {
+        display: inline-block;
         border-radius: 1.0667vw 2.1333vw 2.1333vw 2.1333vw;
         background: rgba(242, 243, 245, 1);
         padding: 2.1333vw 3.2vw;
@@ -123,33 +215,46 @@ function closeChatAllPopup() {
         line-height: 5.8667vw;
         box-sizing: border-box;
         max-width: 74.6667vw;
-        flex-wrap: wrap;
         word-wrap: break-word;
+        min-height: 10.1333vw;
+        text-align: left;
+      }
+      .chat_all_content_info_time {
+        font-size: 3.2vw;
+        transform: translateY(-1.6vw);
+        color: rgba(175, 175, 175, 1);
+        padding: 0 1.3333vw;
       }
     }
-    .chat_all_content_my {
-      justify-content: flex-end;
+    .my-message {
+      justify-content: flex-start;
+      flex-direction: row-reverse;
       img {
         margin-right: 0;
         margin-left: 2.1333vw;
       }
-      .chat_all_content_text_my {
-        border-radius: 1.0667vw 2.1333vw 2.1333vw 2.1333vw;
-        background: rgba(242, 243, 245, 1);
-        padding: 2.1333vw 3.2vw;
-        font-size: 4.2667vw;
-        line-height: 5.8667vw;
-        box-sizing: border-box;
-        max-width: 74.6667vw;
-        flex-wrap: wrap;
-        word-wrap: break-word;
-        background-color: #3f51b5;
-        color: #fff;
+
+      .chat_all_content_info_block {
+        text-align: right;
+
+        .chat_all_content_text {
+          background-color: #3f51b5;
+          color: #fff;
+        }
+      }
+      .chat_all_content_info_time {
+        text-align: right;
       }
     }
   }
   .chat_all_bottom {
     .chat_all_bottom_tool {
+      display: flex;
+      overflow-x: auto;
+      /* 滚动条透明 */
+      &::-webkit-scrollbar {
+        display: none;
+      }
       .chat_all_bottom_tool_item {
         width: 14.9333vw;
         height: 21.8667vw;
@@ -158,9 +263,14 @@ function closeChatAllPopup() {
         text-align: center;
         color: rgba(175, 175, 175, 1);
         vertical-align: top;
+        margin-right: 7.4667vw;
         img {
           width: 14.9333vw;
           height: 14.93333vw;
+          margin-bottom: 1.0667vw;
+        }
+        &:nth-child(5) {
+          margin-right: 0;
         }
       }
     }
@@ -173,12 +283,13 @@ function closeChatAllPopup() {
     position: fixed;
     bottom: 0;
     width: 100vw;
-    height: 49.0667vw;
+    height: 48vw;
     border-radius: 4.2667vw 4.2667vw 0 0;
     background: rgba(255, 255, 255, 1);
     box-shadow: 0vw 0vw 2.1333vw rgba(0, 0, 0, 0.08);
     padding: 4.2667vw;
     box-sizing: border-box;
+    transform: translateY(26.6667vw);
     input {
       width: 72.2667vw;
       height: 12.8vw;

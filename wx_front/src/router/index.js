@@ -1,6 +1,3 @@
-import { useCounterStore } from "@/stores/counter";
-import { storeToRefs } from "pinia";
-
 import { createRouter, createWebHistory } from "vue-router";
 const routes = [
   {
@@ -32,6 +29,16 @@ const routes = [
     component: () => import("@/views/ShortVideo.vue"),
     name: "ShortVideo",
   },
+  {
+    path: "/login",
+    component: () => import("@/views/Login.vue"),
+    name: "Login",
+  },
+  {
+    path: "/register",
+    component: () => import("@/views/Register.vue"),
+    name: "Register",
+  },
 ];
 
 const router = createRouter({
@@ -39,26 +46,25 @@ const router = createRouter({
   routes: routes,
 });
 
-// 全局前置守卫
-// router.beforeEach((to, from, next) => {
-//   // to: 即将进入的目标路由对象
-//   // from: 当前导航正要离开的路由
-//   // next: 必须调用此方法来resolve这个钩子
-//   const store = useCounterStore();
-//   const { tabbarIndex } = storeToRefs(store);
+// 模拟一个检查用户是否登录的方法
+function isLoggedIn() {
+  // 这里可以根据实际情况检查用户是否登录
+  // 例如检查本地存储中的token或调用API验证
+  // return !!localStorage.getItem("userToken");
+  return true;
+}
 
-//   if (to.path === "/home") {
-//     tabbarIndex.value = 0;
-//   } else if (to.path === "/chat") {
-//     tabbarIndex.value = 1;
-//   } else if (to.path === "/dynamic") {
-//     tabbarIndex.value = 2;
-//   } else if (to.path === "/linkman") {
-//     tabbarIndex.value = 3;
-//   } else if (to.path === "/shortvideo") {
-//     tabbarIndex.value = 4;
-//   }
-//   next(); // 放行，继续导航
-// });
+// 全局前置守卫
+router.beforeEach((to, from, next) => {
+  // to: 即将进入的目标路由对象
+  // from: 当前导航正要离开的路由
+  // next: 必须调用此方法来resolve这个钩子
+
+  if (to.path !== "/login" && to.path !== "/register" && !isLoggedIn()) {
+    next("/login"); // 如果用户没有登录，跳转到登录页面
+  } else {
+    next(); // 放行，继续导航
+  }
+});
 
 export default router;
