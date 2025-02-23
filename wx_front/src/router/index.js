@@ -50,8 +50,8 @@ const router = createRouter({
 function isLoggedIn() {
   // 这里可以根据实际情况检查用户是否登录
   // 例如检查本地存储中的token或调用API验证
-  // return !!localStorage.getItem("userToken");
-  return true;
+  return !!localStorage.getItem("userToken");
+  // return true;
 }
 
 // 全局前置守卫

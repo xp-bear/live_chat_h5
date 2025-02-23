@@ -11,9 +11,9 @@
         <!-- 列表展示 -->
         <div class="qunliao_list" @click="openCahtAllFn">
           <div class="qunliao_list_info">
-            <img src="https://xp-cdn-oss.oss-cn-wuhan-lr.aliyuncs.com/cookies/头像.png?1737703342307" alt="" />
+            <img src="https://xp-cdn-oss.oss-cn-wuhan-lr.aliyuncs.com/cookies/quanyuan.jpeg" alt="" />
             <div class="qunliao_list_info_txt">
-              <span>小潘</span>
+              <span>全员群</span>
               <span>今天 • 10:30</span>
             </div>
           </div>
@@ -53,9 +53,11 @@
       <div class="chat_all_bottom" ref="chat_all_bottom">
         <!-- 发送消息 -->
         <div class="chat_all_bottom_list">
-          <img @click="showMenuFn" src="../assets/icons/jia.svg" alt="" />
+          <!-- <img @click="showMenuFn" src="../assets/icons/jia.svg" alt="" /> -->
+          <Uploader @click="showMenuFn" width="4.8vw" height="4.8vw" color="#979797" />
           <input v-model="messageText" type="text" placeholder="在此处键入" />
-          <img @click="sendGroupMessage" src="../assets/icons/fasong.svg" alt="" />
+          <!-- <img @click="sendGroupMessage" src="../assets/icons/fasong.svg" alt="" /> -->
+          <Check @click="sendGroupMessage" width="4.8vw" height="4.8vw" color="#979797" />
         </div>
         <!-- 功能区域 -->
         <div class="chat_all_bottom_tool">
@@ -86,7 +88,7 @@
 </template>
 
 <script setup>
-import { MoreX, RectLeft } from "@nutui/icons-vue";
+import { MoreX, RectLeft, Uploader, Check } from "@nutui/icons-vue";
 import { ref, onMounted } from "vue";
 const ws = ref(null); // websocket
 const username = ref(""); // 用户名
@@ -97,7 +99,7 @@ const tabIndexValue = ref("1"); // tab 标签页切换索引
 const messageText = ref(""); // 消息文本
 const messages = ref([]); // 消息列表
 
-const chatAllPopupState = ref(true); // 群聊弹出层状态
+const chatAllPopupState = ref(false); // 群聊弹出层状态
 
 const chat_all_bottom = ref(null); // 底部栏ref
 const chat_all_content = ref(null); // 内容区域ref
@@ -108,7 +110,7 @@ onMounted(() => {
   // 连接
   connect();
 });
-// 连接
+// 函数 websockit连接
 function connect() {
   if (!username.value) {
     alert("请输入用户名");
@@ -125,7 +127,7 @@ function connect() {
   // 广播消息
   ws.value.onmessage = (event) => {
     const data = JSON.parse(event.data);
-    console.log(data);
+    // console.log(data);
     if (data.type === "group" || data.type === "private") {
       // 群消息和私聊消息
       // messages.value.push({ text: `${data.from ? data.from + ": " : ""}${data.message}`, isMine: data.from === username.value });
@@ -136,6 +138,7 @@ function connect() {
 
 // 函数 发送群聊消息
 function sendGroupMessage() {
+  console.log(messages.value);
   if (ws.value && messageText.value) {
     ws.value.send(JSON.stringify({ type: "group", from: username.value, message: messageText.value, username: username.value }));
     messages.value.push({ text: messageText.value, isMine: true, username: username.value }); // 添加到消息列表 本人
