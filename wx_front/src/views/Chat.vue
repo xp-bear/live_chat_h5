@@ -114,7 +114,8 @@ function connect() {
     alert("请输入用户名");
     return;
   }
-  ws.value = new WebSocket("ws://127.0.0.1:5200");
+  // 局域网测试
+  ws.value = new WebSocket("ws://172.31.56.53:5200");
 
   ws.value.onopen = () => {
     connected.value = true;

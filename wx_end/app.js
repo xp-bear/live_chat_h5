@@ -1,7 +1,6 @@
 const WebSocket = require("ws");
 
-const server = new WebSocket.Server({ port: 5200 });
-
+const server = new WebSocket.Server({ port: 5200, host: "0.0.0.0" });
 let clients = {};
 
 server.on("connection", (ws) => {
@@ -41,4 +40,4 @@ function broadcast(data, sender) {
   });
 }
 
-console.log("WebSocket 服务器运行在 ws://127.0.0.1:5200");
+console.log("WebSocket 服务器运行在 ws://0.0.0.0:5200");
