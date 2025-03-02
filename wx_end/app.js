@@ -1,7 +1,16 @@
 const WebSocket = require("ws");
+const express = require("express");
+const bodyParser = require("body-parser");
+const cors = require("cors"); // 引入 cors 包
 
 const server = new WebSocket.Server({ port: 5200, host: "0.0.0.0" });
 let clients = {};
+
+const app = express();
+const port = 5201; // 服务端口
+
+app.use(cors()); // 使用 cors 中间件
+app.use(bodyParser.json()); // 解析 application/json
 
 server.on("connection", (ws) => {
   ws.on("message", (message) => {
@@ -39,5 +48,16 @@ function broadcast(data, sender) {
     }
   });
 }
+
+app.get("/", (req, res) => {
+  res.send({
+    code: 200,
+    message: "服务器api运行正常",
+  });
+});
+
+app.listen(port, () => {
+  console.log(`API 服务器运行在 http://localhost:${port}`);
+});
 
 console.log("WebSocket 服务器运行在 ws://0.0.0.0:5200");
