@@ -2,7 +2,7 @@
   <div class="Login">
     <!-- 顶部背景 -->
     <div class="lg_bg">
-      <img src="../assets/icons/lg_bg.svg" alt="" />
+      <img src="../assets/imgs/logo.png" alt="" />
     </div>
     <!-- 登陆注册切换按钮 -->
     <div class="lg_change">
@@ -13,7 +13,8 @@
     <div v-if="isLoginActive" class="lg_form">
       <input type="text" placeholder="请输入账号" @focus="handleFocus" @blur="handleBlur" />
       <input type="password" placeholder="请输入密码" @focus="handleFocus" @blur="handleBlur" />
-      <button class="lg_btn">
+      <!-- 每间隔3s 再次进行动画 -->
+      <button class="lg_btn animate__animated">
         <img src="../assets/icons/youjiantou.svg" alt="" />
       </button>
     </div>
@@ -35,11 +36,33 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, onMounted, onUnmounted } from "vue";
+// Animate.css 使用
+import "animate.css"; // 引入 Animate.css
 
 const isLoginActive = ref(true); // 登陆注册切换
 const showSpeedLogin = ref(true); // 快捷登录方式
+let timer = ref(null); // 登录按钮3s播放动画定时器
 
+onMounted(() => {
+  // 页面加载时，设置定时器每3秒切换一次动画
+  timer.value = setInterval(() => {
+    let lg_btn = document.querySelector(".lg_btn");
+    if (lg_btn) {
+      lg_btn.classList.add("animate__tada");
+      setTimeout(() => {
+        lg_btn.classList.remove("animate__tada");
+      }, 1000);
+    }
+  }, 3000); // 每3秒切换一次
+});
+
+onUnmounted(() => {
+  // 在组件卸载时清除定时器
+  if (timer.value) {
+    clearInterval(timer.value);
+  }
+});
 // 失焦和聚焦事件
 const handleFocus = () => {
   showSpeedLogin.value = false;
@@ -119,6 +142,7 @@ const handleBlur = () => {
       background: linear-gradient(135deg, rgba(255, 51, 255, 1) 0%, rgba(28, 85, 255, 1) 100%);
       border: 0;
       box-shadow: 0 0 0.8vw rgba(0, 0, 0, 0.3);
+
       img {
         width: 8.5333vw;
         height: 6.6667vw;

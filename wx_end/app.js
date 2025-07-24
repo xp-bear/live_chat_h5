@@ -2,6 +2,7 @@ const WebSocket = require("ws");
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors"); // 引入 cors 包
+const dayjs = require("dayjs"); // 如果需要使用日期格式化功能，可以取消注释这一行
 
 const server = new WebSocket.Server({ port: 5200, host: "0.0.0.0" });
 let clients = {};
@@ -15,10 +16,12 @@ app.use(bodyParser.json()); // 解析 application/json
 server.on("connection", (ws) => {
   ws.on("message", (message) => {
     let data = JSON.parse(message);
+    console.log(`收到消息: ${message}`);
+
     switch (data.type) {
       case "join":
         clients[data.username] = ws;
-        broadcast({ type: "info", message: `${data.username} 加入了聊天` });
+        broadcast({ type: "info", message: `${data.username} 加入了聊天`, create_time: dayjs().format("YYYY-MM-DD HH:mm:ss") });
         break;
       case "private":
         if (clients[data.to]) {
@@ -26,7 +29,7 @@ server.on("connection", (ws) => {
         }
         break;
       case "group":
-        broadcast({ from: data.from, message: data.message, type: "group" }, data.from);
+        broadcast({ from: data.from, message: data.message, type: "group", create_time: data.create_time }, data.from);
         break;
     }
   });
@@ -35,12 +38,13 @@ server.on("connection", (ws) => {
     Object.keys(clients).forEach((username) => {
       if (clients[username] === ws) {
         delete clients[username];
-        broadcast({ type: "info", message: `${username} 退出了聊天` });
+        broadcast({ type: "info", message: `${username} 退出了聊天`, create_time: dayjs().format("YYYY-MM-DD HH:mm:ss") });
       }
     });
   });
 });
 
+//  广播消息
 function broadcast(data, sender) {
   Object.keys(clients).forEach((username) => {
     if (username !== sender) {

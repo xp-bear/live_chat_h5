@@ -40,6 +40,8 @@
       <div @click="hideMenuFn" class="chat_all_content" ref="chat_all_content">
         <!-- 别人发消息 -->
         <div class="chat_all_content_info" v-for="(message, index) in messages" :key="index" :class="{ 'my-message': message.isMine }">
+          <!-- 时间显示 -->
+          <div class="chat_all_content_info_createtime">{{ message.create_time }}</div>
           <img src="https://xp-cdn-oss.oss-cn-wuhan-lr.aliyuncs.com/cookies/头像.png?1737703342307" alt="" />
           <div class="chat_all_content_info_block">
             <div class="chat_all_content_info_time">{{ message.username }}</div>
@@ -55,7 +57,7 @@
         <div class="chat_all_bottom_list">
           <!-- <img @click="showMenuFn" src="../assets/icons/jia.svg" alt="" /> -->
           <Uploader @click="showMenuFn" width="4.8vw" height="4.8vw" color="#979797" />
-          <input v-model="messageText" type="text" placeholder="在此处键入" />
+          <textarea id="textarea_message" v-model="messageText" type="text" placeholder="在此处键入" rows="1" @focus="activePlaceholderHeight(6.4)" @blur="cancelPlaceholderHeight(12.8)"></textarea>
           <!-- <img @click="sendGroupMessage" src="../assets/icons/fasong.svg" alt="" /> -->
           <Check @click="sendGroupMessage" width="4.8vw" height="4.8vw" color="#979797" />
         </div>
@@ -90,6 +92,8 @@
 <script setup>
 import { MoreX, RectLeft, Uploader, Check } from "@nutui/icons-vue";
 import { ref, onMounted } from "vue";
+// 导入dayjs
+import dayjs from "dayjs";
 const ws = ref(null); // websocket
 const username = ref(""); // 用户名
 const privateTo = ref(""); // 私聊对象
@@ -117,33 +121,45 @@ function connect() {
     return;
   }
   // 局域网测试
-  ws.value = new WebSocket("ws://172.31.56.53:5200");
+  ws.value = new WebSocket("ws://192.168.1.7:5200");
 
+  // 用户连接成功
   ws.value.onopen = () => {
     connected.value = true;
-    ws.value.send(JSON.stringify({ type: "join", username: username.value }));
+    ws.value.send(JSON.stringify({ type: "join", username: username.value, create_time: dayjs().format("YYYY-MM-DD HH:mm:ss") }));
   };
 
   // 广播消息
   ws.value.onmessage = (event) => {
     const data = JSON.parse(event.data);
-    // console.log(data);
+    console.log("收到消息", data);
+
     if (data.type === "group" || data.type === "private") {
       // 群消息和私聊消息
       // messages.value.push({ text: `${data.from ? data.from + ": " : ""}${data.message}`, isMine: data.from === username.value });
-      messages.value.push({ text: `${data.message}`, isMine: data.from === username.value, username: data.from });
+      messages.value.push({ text: `${data.message}`, isMine: data.from === username.value, username: data.from, create_time: data.create_time });
+
+      // chat_all_content //监测下方是否有最新消息,不应该直接滚动到最底部
+      setTimeout(() => {
+        chat_all_content.value.scrollTop = chat_all_content.value.scrollHeight;
+      }, 100);
     }
   };
 }
 
 // 函数 发送群聊消息
 function sendGroupMessage() {
-  console.log(messages.value);
+  console.log("发送群聊消息", messages.value);
   if (ws.value && messageText.value) {
-    ws.value.send(JSON.stringify({ type: "group", from: username.value, message: messageText.value, username: username.value }));
-    messages.value.push({ text: messageText.value, isMine: true, username: username.value }); // 添加到消息列表 本人
+    ws.value.send(JSON.stringify({ type: "group", from: username.value, message: messageText.value, username: username.value, create_time: dayjs().format("YYYY-MM-DD HH:mm:ss") }));
+    messages.value.push({ text: messageText.value, isMine: true, username: username.value, create_time: dayjs().format("YYYY-MM-DD HH:mm:ss") });
     messageText.value = "";
   }
+
+  // chat_all_content 滚动到最底部
+  setTimeout(() => {
+    chat_all_content.value.scrollTop = chat_all_content.value.scrollHeight;
+  }, 100);
 }
 
 // 函数 发送私聊消息
@@ -180,6 +196,26 @@ function openCahtAllFn() {
 function closeChatAllPopup() {
   chatAllPopupState.value = false;
 }
+// 激活输入框时的高度变化
+function activePlaceholderHeight(value) {
+  // 隐藏菜单
+  hideMenuFn();
+
+  // 获取输入框
+  const textarea = document.querySelector("#textarea_message");
+  if (textarea) {
+    // 设置高度为自动
+    textarea.style = `line-height: ${value}vw;transition: all 0.3s;`;
+  }
+}
+// 取消激活输入框时的高度变化
+function cancelPlaceholderHeight(value) {
+  const textarea = document.querySelector("#textarea_message");
+  if (textarea) {
+    // 设置高度为自动
+    textarea.style = `line-height: ${value}vw;transition: all 0.3s;`;
+  }
+}
 </script>
 
 <style lang="scss" scoped>
@@ -189,6 +225,7 @@ function closeChatAllPopup() {
     overflow: auto;
     padding: 3.2vw 6.4vw 0;
     box-sizing: border-box;
+    white-space: pre-wrap;
     .chat_all_content_noitfy {
       height: 5.3333vw;
       font-size: 4vw;
@@ -204,6 +241,16 @@ function closeChatAllPopup() {
       display: flex;
       align-items: flex-start;
       margin-bottom: 3.2vw;
+      position: relative;
+      padding-top: 6.4vw;
+      .chat_all_content_info_createtime {
+        position: absolute;
+        top: 0;
+        font-size: 3.2vw;
+        left: 50%;
+        transform: translateX(-50%);
+        color: rgba(175, 175, 175, 1);
+      }
       img {
         width: 8.5333vw;
         height: 8.5333vw;
@@ -226,7 +273,8 @@ function closeChatAllPopup() {
       .chat_all_content_info_time {
         font-size: 3.2vw;
         transform: translateY(-1.6vw);
-        color: rgba(175, 175, 175, 1);
+        /* color: rgba(175, 175, 175, 1); */
+        color: #000;
         padding: 0 1.3333vw;
       }
     }
@@ -294,9 +342,10 @@ function closeChatAllPopup() {
     padding: 4.2667vw;
     box-sizing: border-box;
     transform: translateY(26.6667vw);
-    input {
+    textarea {
       width: 72.2667vw;
       height: 12.8vw;
+      line-height: 12.8vw;
       outline: none;
       border: 0;
       border-radius: 6.4vw;
@@ -308,7 +357,6 @@ function closeChatAllPopup() {
       &::placeholder {
         font-size: 4.2667vw;
         font-weight: 400;
-        line-height: 5.8667vw;
         color: rgba(175, 175, 175, 1);
         text-align: left;
         vertical-align: top;
