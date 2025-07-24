@@ -59,7 +59,7 @@
           <Uploader @click="showMenuFn" width="4.8vw" height="4.8vw" color="#979797" />
           <textarea id="textarea_message" v-model="messageText" type="text" placeholder="在此处键入" rows="1" @focus="activePlaceholderHeight(6.4)" @blur="cancelPlaceholderHeight(12.8)"></textarea>
           <!-- <img @click="sendGroupMessage" src="../assets/icons/fasong.svg" alt="" /> -->
-          <Check @click="sendGroupMessage" width="4.8vw" height="4.8vw" color="#979797" />
+          <Check @click="sendGroupMessage" width="4.8vw" height="4.8vw" :color="messageText.length > 0 ? '#3f51b5' : '#979797'" />
         </div>
         <!-- 功能区域 -->
         <div class="chat_all_bottom_tool">
