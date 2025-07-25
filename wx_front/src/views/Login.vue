@@ -11,19 +11,19 @@
     </div>
     <!-- 登录输入框 -->
     <div v-if="isLoginActive" class="lg_form">
-      <input type="text" placeholder="请输入账号" @focus="handleFocus" @blur="handleBlur" />
-      <input type="password" placeholder="请输入密码" @focus="handleFocus" @blur="handleBlur" />
+      <input type="text" v-model="username" placeholder="请输入账号" @focus="handleFocus" @blur="handleBlur" />
+      <input type="password" v-model="password" placeholder="请输入密码" @focus="handleFocus" @blur="handleBlur" />
       <!-- 每间隔3s 再次进行动画 -->
-      <button class="lg_btn animate__animated">
+      <button class="lg_btn animate__animated" @click="submitLogin">
         <img src="../assets/icons/youjiantou.svg" alt="" />
       </button>
     </div>
     <!-- 注册输入框 -->
     <div v-else class="lg_form lg_reg">
-      <input type="text" placeholder="请输入账号" @focus="handleFocus" @blur="handleBlur" />
-      <input type="password" placeholder="请输入密码" @focus="handleFocus" @blur="handleBlur" />
-      <input type="password" placeholder="请再次输入密码" @focus="handleFocus" @blur="handleBlur" />
-      <button class="reg_btn">注册账号</button>
+      <input type="text" v-model="username" placeholder="请设置用户名" @focus="handleFocus" @blur="handleBlur" />
+      <input type="password" v-model="password" placeholder="请设置密码" @focus="handleFocus" @blur="handleBlur" />
+      <input type="password" v-model="confirmPassword" placeholder="请再次确认密码" @focus="handleFocus" @blur="handleBlur" />
+      <button class="reg_btn" @click="submitRgister">注册账号</button>
     </div>
     <!-- 快捷登录方式 -->
     <div v-if="showSpeedLogin" class="lg_speed">
@@ -37,6 +37,18 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from "vue";
+import { createUser, loginUser } from "../api/allApi"; //  引入创建用户的API
+import { showToast } from "@nutui/nutui";
+// 引入路由
+import { useRouter, useRoute } from "vue-router";
+const router = useRouter();
+const route = useRoute();
+// 引入 Pinia store
+import { useCounterStore } from "@/stores/counter";
+import { storeToRefs } from "pinia";
+const store = useCounterStore(); // 可以在组件中的任意位置访问 `store` 变量 ✨
+const { userInfo } = storeToRefs(store); // 使用 storeToRefs 解构 store 中的响应式属性
+
 // Animate.css 使用
 import "animate.css"; // 引入 Animate.css
 
@@ -44,10 +56,17 @@ const isLoginActive = ref(true); // 登陆注册切换
 const showSpeedLogin = ref(true); // 快捷登录方式
 let timer = ref(null); // 登录按钮3s播放动画定时器
 
+// 登录与注册输入框v-model绑定
+const username = ref(""); // 用户名
+const password = ref(""); // 密码
+const confirmPassword = ref(""); // 注册时确认密码
+
 onMounted(() => {
   // 页面加载时，设置定时器每3秒切换一次动画
   timer.value = setInterval(() => {
     let lg_btn = document.querySelector(".lg_btn");
+    // 添加动画效果
+    lg_btn.style = "transition all 0.3s ease-in-out;";
     if (lg_btn) {
       lg_btn.classList.add("animate__tada");
       setTimeout(() => {
@@ -71,6 +90,78 @@ const handleFocus = () => {
 const handleBlur = () => {
   showSpeedLogin.value = true;
 };
+// 点击注册按钮 // submitRgister
+const submitRgister = () => {
+  // 用户名不少于2位
+  if (username.value.trim() === "") {
+    return showToast.warn("用户名不能为空");
+  }
+  if (password.value.length < 6) {
+    return showToast.warn("密码长度不能小于6位");
+  }
+  if (password.value !== confirmPassword.value) {
+    return showToast.warn("两次输入的密码不一致，请重新输入");
+  }
+  // 调用创建用户的API
+  createUser({ u_name: username.value, u_password: password.value })
+    .then((response) => {
+      if (response.code === 400) {
+        return showToast.fail(response.message);
+      } else if (response.code === 200) {
+        showToast.success("注册成功,请登录");
+        setTimeout(() => {
+          isLoginActive.value = true; // 切换到登录界面
+          confirmPassword.value = ""; // 清空确认密码输入框
+        }, 1000); // 延时1秒后执行
+      } else {
+        console.log("注册失败:", response.message);
+        showToast.fail(response.message || "注册失败，请稍后再试");
+      }
+    })
+    .catch((error) => {
+      console.error("注册请求失败:", error);
+      showToast.fail("注册请求失败，请稍后再试");
+    });
+};
+
+// 点击登录按钮
+const submitLogin = () => {
+  // 用户名不能大于12位
+  if (username.value.length > 20 || username.value.length < 2) {
+    return showToast.warn("用户名长短不符合要求");
+  }
+  if (username.value.trim() === "") {
+    return showToast.warn("用户名不能为空");
+  }
+  if (password.value.length < 6) {
+    return showToast.warn("密码长度不能小于6位");
+  }
+  // 调用登录用户的API
+  loginUser({ u_name: username.value, u_password: password.value })
+    .then((response) => {
+      if (response.code === 400) {
+        return showToast.fail(response.message);
+      } else if (response.code === 200) {
+        showToast.success("登录成功");
+        //保存登录信息到localStorage
+        // localStorage.setItem("userInfo", JSON.stringify(response.data));
+        store.setUserInfo(response.data); // 更新 Pinia store 中的用户信息
+
+        setTimeout(() => {
+          router.push("/chat"); // 假设登录成功后跳转到首页
+          username.value = ""; // 清空用户名输入框
+          password.value = ""; // 清空密码输入框
+        }, 1000); // 延时1秒后执行
+      } else {
+        console.log("登录失败:", response.message);
+        showToast.fail(response.message || "登录失败，请稍后再试");
+      }
+    })
+    .catch((error) => {
+      console.error("登录请求失败:", error);
+      showToast.fail("登录请求失败，请稍后再试");
+    });
+};
 </script>
 
 <style lang="scss" scoped>
@@ -83,6 +174,10 @@ const handleBlur = () => {
   z-index: 889;
   font-family: "pingfang";
 
+  background: url("../assets/imgs/bg.gif") no-repeat center center;
+  background-size: cover;
+
+  background-color: #fff;
   .lg_speed {
     position: absolute;
     bottom: 6.4vw;
@@ -91,6 +186,7 @@ const handleBlur = () => {
     width: 100%;
     height: 11.7333vw;
     box-sizing: border-box;
+    background-color: #fff;
     .lg_speed_item {
       width: 19.2vw;
       height: 11.7333vw;

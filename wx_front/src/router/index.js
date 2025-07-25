@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from "vue-router";
+import { showToast } from "@nutui/nutui";
 const routes = [
   {
     path: "/",
@@ -50,8 +51,25 @@ const router = createRouter({
 function isLoggedIn() {
   // 这里可以根据实际情况检查用户是否登录
   // 例如检查本地存储中的token或调用API验证
-  // return !!localStorage.getItem("userToken");
-  return true;
+  let userInfo = JSON.parse(localStorage.getItem("userInfo")); // 假设token存储在localStorage中
+  let token = userInfo ? userInfo.u_token : null;
+
+  if (token) {
+    const now = Date.now();
+    const tokenParts = token.split("_");
+    const expirationTime = parseInt(tokenParts[1], 10);
+    if (now < expirationTime) {
+      return true; // 用户已登录
+    } else {
+      showToast.text("登录已过期，请重新登录");
+      setTimeout(() => {
+        localStorage.removeItem("userInfo"); // 清除过期的token
+        return false; // 用户登录已过期
+      }, 1000); // 延时1秒后执行
+    }
+  } else {
+    return false; // 用户未登录
+  }
 }
 
 // 全局前置守卫

@@ -13,10 +13,11 @@ import "@nutui/nutui/dist/style.css";
 
 // 引入pinia
 import { createPinia } from "pinia";
-const pinia = createPinia();
 
+const pinia = createPinia();
 const app = createApp(App);
 app.use(router);
 app.use(NutUI);
 app.use(pinia);
+
 app.mount("#app");

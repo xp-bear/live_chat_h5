@@ -2,10 +2,10 @@
 
 ## User表
 
-|  id  | u_name | u_password | u_createtime |         u_token         | u_avatar         | u_money  |      |
-| :--: | :----: | :--------: | :----------: | :---------------------: | ---------------- | -------- | ---- |
-| 主键 |  char  |    char    |     time     |          char           | char             | int      |      |
-| 自增 | 用户名 |    密码    | 用户创建时间 | 用户登录的过期token时间 | 用户默认头像链接 | 用户金币 |      |
+|  id  | u_name  | u_password | u_sex              | u_createtime |         u_token         | u_avatar         | u_money  | u_saying     | u_location     |
+| :--: | :-----: | :--------: | ------------------ | :----------: | :---------------------: | ---------------- | -------- | ------------ | -------------- |
+| 主键 | varchar |  varchar   | int                |     time     |         varchar         | varchar          | int      | varchar      | varchar        |
+| 自增 | 用户名  |    密码    | 性别<br />0-男1-女 | 用户创建时间 | 用户登录的过期token时间 | 用户默认头像链接 | 用户金币 | 用户个性签名 | 用户的位置信息 |
 
 
 

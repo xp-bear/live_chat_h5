@@ -4,15 +4,19 @@ const bodyParser = require("body-parser");
 const cors = require("cors"); // 引入 cors 包
 const dayjs = require("dayjs"); // 如果需要使用日期格式化功能，可以取消注释这一行
 
+const userRoutes = require("./routes/userRoutes"); // 引入用户路由
+
 const server = new WebSocket.Server({ port: 5200, host: "0.0.0.0" });
 let clients = {};
 
 const app = express();
-const port = 5201; // 服务端口
 
+// 中间件
+app.use(express.json());
 app.use(cors()); // 使用 cors 中间件
 app.use(bodyParser.json()); // 解析 application/json
 
+// WebSocket 连接处理
 server.on("connection", (ws) => {
   ws.on("message", (message) => {
     let data = JSON.parse(message);
@@ -53,15 +57,32 @@ function broadcast(data, sender) {
   });
 }
 
+// 设置路由
+app.use("/api", userRoutes);
+
+// 首页根路由提示
 app.get("/", (req, res) => {
-  res.send({
+  res.status(200).json({
     code: 200,
-    message: "服务器api运行正常",
+    status: "success",
+    message: "欢迎使用熊仔聊天后端服务！",
   });
 });
 
-app.listen(port, () => {
-  console.log(`API 服务器运行在 http://localhost:${port}`);
+// 404 处理
+app.use((req, res) => {
+  res.status(404).json({ error: "未找到路由" });
+});
+
+// 错误处理
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: "服务器内部错误" });
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`🚀 服务器运行在 http://localhost:${PORT}`);
 });
 
 console.log("WebSocket 服务器运行在 ws://0.0.0.0:5200");

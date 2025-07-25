@@ -28,9 +28,9 @@
       <div class="chat_all_top">
         <div class="chat_all_top_txt">
           <RectLeft @click="closeChatAllPopup" width="4.8vw" height="4.8vw" />
-          <img src="https://xp-cdn-oss.oss-cn-wuhan-lr.aliyuncs.com/cookies/头像.png?1737703342307" alt="" />
+          <img :src="userInfo.u_avatar" alt="" />
           <div class="chat_all_top_state">
-            <span>小潘</span>
+            <span>{{ userInfo.u_name }}</span>
             <span><i class="chat_all_top_dot"></i>在线</span>
           </div>
         </div>
@@ -92,6 +92,12 @@
 <script setup>
 import { MoreX, RectLeft, Uploader, Check } from "@nutui/icons-vue";
 import { ref, onMounted } from "vue";
+// 引入 Pinia store
+import { useCounterStore } from "@/stores/counter";
+import { storeToRefs } from "pinia";
+const store = useCounterStore(); // 可以在组件中的任意位置访问 `store` 变量 ✨
+const { userInfo } = storeToRefs(store); // 使用 storeToRefs 解构 store 中的响应式属性
+
 // 导入dayjs
 import dayjs from "dayjs";
 const ws = ref(null); // websocket
@@ -110,7 +116,7 @@ const chat_all_content = ref(null); // 内容区域ref
 
 onMounted(() => {
   // 随机用户名
-  username.value = "用户" + Math.floor(Math.random() * 10000);
+  username.value = userInfo.value.u_name;
   // 连接
   connect();
 });
@@ -246,7 +252,7 @@ function cancelPlaceholderHeight(value) {
       .chat_all_content_info_createtime {
         position: absolute;
         top: 0;
-        font-size: 3.2vw;
+        font-size: 2.6667vw;
         left: 50%;
         transform: translateX(-50%);
         color: rgba(175, 175, 175, 1);
@@ -273,8 +279,7 @@ function cancelPlaceholderHeight(value) {
       .chat_all_content_info_time {
         font-size: 3.2vw;
         transform: translateY(-1.6vw);
-        /* color: rgba(175, 175, 175, 1); */
-        color: #000;
+        color: rgba(175, 175, 175, 1);
         padding: 0 1.3333vw;
       }
     }
