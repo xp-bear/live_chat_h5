@@ -28,9 +28,7 @@ node_modules/
 venv/
 __pycache__/
 
-# 忽略特定文件
-config.json
-.env
+
 
 # 忽略打包生成的文件
 dist/
