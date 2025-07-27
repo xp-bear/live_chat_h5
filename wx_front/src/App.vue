@@ -24,5 +24,6 @@ onMounted(() => {
 #app {
   font-family: "pingfang";
   font-size: 4.2667vw;
+  max-width: 750px;
 }
 </style>

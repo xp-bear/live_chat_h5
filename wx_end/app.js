@@ -82,7 +82,6 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`🚀 服务器运行在 http://localhost:${PORT}`);
+  console.log(`🚀 BASE_API 运行在 http://localhost:${PORT}`);
+  console.log("🚀 WS_API 运行在 ws://0.0.0.0:5200");
 });
-
-console.log("WebSocket 服务器运行在 ws://0.0.0.0:5200");

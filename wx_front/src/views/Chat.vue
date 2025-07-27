@@ -98,6 +98,8 @@ import { storeToRefs } from "pinia";
 const store = useCounterStore(); // 可以在组件中的任意位置访问 `store` 变量 ✨
 const { userInfo } = storeToRefs(store); // 使用 storeToRefs 解构 store 中的响应式属性
 
+import { CONFIG } from "../config"; // 引入配置文件
+
 // 导入dayjs
 import dayjs from "dayjs";
 const ws = ref(null); // websocket
@@ -127,7 +129,7 @@ function connect() {
     return;
   }
   // 局域网测试
-  ws.value = new WebSocket("ws://192.168.1.7:5200");
+  ws.value = new WebSocket(CONFIG.development.WS_API);
 
   // 用户连接成功
   ws.value.onopen = () => {
