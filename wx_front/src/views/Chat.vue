@@ -305,7 +305,7 @@ function connect() {
             console.error("播放音频失败:", error);
           });
         }
-      } else if (data.type === "private" && !privateChatAllPopupState.value) {
+      } else if (data.type === "private") {
         // 如果私聊弹出层没有打开，则将消息添加到未读私聊消息列表
         unprivateMessages_p.value.push(data);
 
