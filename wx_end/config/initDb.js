@@ -40,6 +40,21 @@ async function init() {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
   `);
   console.log("✅ 表格 'users' 已创建或已存在");
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS online_user (
+      id INT NOT NULL AUTO_INCREMENT,
+      create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      message VARCHAR(255) NOT NULL,
+      type VARCHAR(20) NOT NULL DEFAULT 'info',
+      user_img VARCHAR(255) DEFAULT NULL,
+      user_people VARCHAR(100) DEFAULT NULL,
+      user_state VARCHAR(20) DEFAULT NULL,
+      PRIMARY KEY (id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `);
+  console.log("✅ 表格 'online_user' 已创建或已存在");
+
   process.exit(0);
 }
 

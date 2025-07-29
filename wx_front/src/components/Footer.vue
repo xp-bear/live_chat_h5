@@ -1,17 +1,18 @@
 <template>
   <nut-tabbar @tab-switch="tabSwitch" v-model="active" bottom safe-area-inset-bottom placeholder active-color="#3f51b5" unactive-color="#b3b3b3">
-    <nut-tabbar-item v-for="(item, index) in List" :key="index" :tab-title="item.title" :icon="item.icon" :to="item.to"> </nut-tabbar-item>
+    <!-- 设置/chat 未读消息数量 -->
+    <nut-tabbar-item v-for="(item, index) in List" :key="index" :tab-title="item.title" :icon="item.icon" :to="item.to" :value="index == 1 && unprivateMessages_p.length"> </nut-tabbar-item>
   </nut-tabbar>
 </template>
 <script setup>
-import { h, ref, onMounted, watch } from "vue";
+import { h, ref, onMounted, watch, unref } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { Home, Message, Find, Footprint, My } from "@nutui/icons-vue";
 
 import { useCounterStore } from "@/stores/counter";
 import { storeToRefs } from "pinia";
 const store = useCounterStore();
-const { tabbarIndex } = storeToRefs(store);
+const { tabbarIndex, unReadMessages_p, unprivateMessages_p } = storeToRefs(store);
 const router = useRouter();
 const route = useRoute();
 
@@ -46,7 +47,7 @@ const active = ref(null);
 
 // 监听tab切换事件
 const tabSwitch = (item, index) => {
-  console.log(item, index);
+  // console.log(item, index);
 };
 
 // 监听路由变化
@@ -71,4 +72,5 @@ watch(
 
 onMounted(() => {});
 </script>
+
 <style lang="scss"></style>

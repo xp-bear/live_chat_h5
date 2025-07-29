@@ -14,6 +14,13 @@ const dbService = {
 
   // 用户相关操作
   user: {
+    updateOnlineUser: async (create_time, message, type, user_img, user_people, user_state) => {
+      const sql = `
+        INSERT INTO online_user (create_time, message, type, user_img, user_people, user_state)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `;
+      return await dbService.query(sql, [create_time, message, type, user_img, user_people, user_state]);
+    },
     getAll: async () => {
       return await dbService.query("SELECT * FROM users");
     },

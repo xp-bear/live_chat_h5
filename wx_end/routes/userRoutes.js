@@ -6,5 +6,13 @@ const userController = require("../controllers/userController");
 router.get("/get_all_user", userController.getAllUsers);
 router.post("/create_user", userController.createUser);
 router.post("/login_user", userController.loginUser);
+// 在线用户列表更新
+router.post("/add_online_user", userController.updateOnlineUser);
+// 清空在线用户列表数据
+router.post("/clear_online_user", userController.clearOnlineUser);
+// 查询在线用户列表
+router.get("/get_online_user", userController.getOnlineUser);
+// 根据用户名删除在线用户
+router.post("/delete_online_user", userController.deleteOnlineUser);
 
 module.exports = router;

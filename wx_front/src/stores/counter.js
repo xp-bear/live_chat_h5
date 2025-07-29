@@ -5,6 +5,11 @@ export const useCounterStore = defineStore("counter", {
   state: () => ({
     tabbarIndex: 0, // tabbar的索引
     userInfo: null, // 用户信息登录的对象 {}
+    unReadMessages_p: [], // 未读消息列表
+    messages_p: [], // 消息列表
+    onlineUser_p: [], // 在线用户列表
+    private_messages_p: [], // 
+    unprivateMessages_p: [],
   }),
   getters: {},
   actions: {

@@ -25,15 +25,22 @@ server.on("connection", (ws) => {
     switch (data.type) {
       case "join":
         clients[data.username] = ws;
-        broadcast({ type: "info", message: `${data.username} 加入了聊天`, create_time: dayjs().format("YYYY-MM-DD HH:mm:ss") });
+        broadcast({
+          type: "info",
+          message: `${data.username} 加入了聊天`,
+          create_time: dayjs().format("YYYY-MM-DD HH:mm:ss"),
+          user_state: "join",
+          user_people: data.username,
+          user_img: data.user_img,
+        });
         break;
       case "private":
         if (clients[data.to]) {
-          clients[data.to].send(JSON.stringify({ from: data.from, message: data.message, type: "private" }));
+          clients[data.to].send(JSON.stringify({ from: data.from, to: data.to, message: data.message, type: "private", create_time: data.create_time, user_img: data.user_img }));
         }
         break;
       case "group":
-        broadcast({ from: data.from, message: data.message, type: "group", create_time: data.create_time }, data.from);
+        broadcast({ from: data.from, message: data.message, type: "group", create_time: data.create_time, user_img: data.user_img }, data.from);
         break;
     }
   });
@@ -42,7 +49,7 @@ server.on("connection", (ws) => {
     Object.keys(clients).forEach((username) => {
       if (clients[username] === ws) {
         delete clients[username];
-        broadcast({ type: "info", message: `${username} 退出了聊天`, create_time: dayjs().format("YYYY-MM-DD HH:mm:ss") });
+        broadcast({ type: "info", message: `${username} 退出了聊天`, create_time: dayjs().format("YYYY-MM-DD HH:mm:ss"), user_state: "close", user_people: username });
       }
     });
   });
