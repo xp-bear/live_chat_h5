@@ -55,6 +55,17 @@ async function init() {
   `);
   console.log("✅ 表格 'online_user' 已创建或已存在");
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS user_emoji (
+      id INT NOT NULL AUTO_INCREMENT,
+      create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      user_id INT NOT NULL,
+      user_emoji_img VARCHAR(255) NOT NULL,
+      PRIMARY KEY (id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `);
+  console.log("✅ 表格 'user_emoji' 已创建或已存在");
+
   process.exit(0);
 }
 

@@ -48,11 +48,20 @@ export function deleteOnlineUser(data) {
   });
 }
 
-// // 获取用户信息
-// export function getInfo() {
-//   return request({
-//     url: "/user/info",
-//     method: "get",
-//     params
-//   });
-// }
+// 添加用户表情包
+export function addUserEmoji(data) {
+  return request({
+    url: "/api/add_user_emoji",
+    method: "post",
+    data,
+  });
+}
+
+// 获取用户表情包
+export function getUserEmoji(userId) {
+  return request({
+    url: "/api/get_user_emoji",
+    method: "get",
+    params: { user_id: userId },
+  });
+}

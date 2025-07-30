@@ -5,6 +5,7 @@
       <input class="search" placeholder="消息列表查询" />
       <img class="search_img" src="../assets/icons/fangdajing.svg" />
     </div>
+
     <!-- tab 标签页切换 -->
     <nut-tabs v-model="tabIndexValue" swipeable background="#ffffff" size="large">
       <nut-tab-pane title="全部群聊" pane-key="1">
@@ -45,7 +46,8 @@
     </nut-tabs>
     <!-- 来消息提示音效播放 -->
     <audio id="messageAudio" src="/music/msg.mp3" preload="auto"></audio>
-    <!-- 群聊 弹出层 -->
+
+    <!-- [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[群聊 弹出层]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]] -->
     <nut-popup v-model:visible="chatAllPopupState" position="right" :style="{ width: '100%', height: '100%' }">
       <!-- 顶部栏 -->
       <div class="chat_all_top">
@@ -60,7 +62,7 @@
         <MoreX width="4.8vw" height="4.8vw" />
       </div>
       <!-- 内容区域 -->
-      <div @click="hideMenuFn" class="chat_all_content" ref="chat_all_content">
+      <div @touchstart="onPopupTouchStart" @touchmove="onPopupTouchMove" @touchend="onPopupTouchEnd" @click="hideMenuFn()" class="chat_all_content" ref="chat_all_content">
         <!-- 别人发消息 -->
         <div class="chat_all_content_info" v-for="(message, index) in messages_p" :key="index" :class="{ 'my-message': message.isMine }">
           <!-- 时间显示 -->
@@ -68,45 +70,99 @@
           <img :src="message.user_img" alt="" />
           <div class="chat_all_content_info_block">
             <div class="chat_all_content_info_time">{{ message.username }}</div>
-            <div class="chat_all_content_text">{{ message.text }}</div>
+            <div v-show="message.msg_type == 'text'" class="chat_all_content_text">{{ message.text }}</div>
+            <img v-show="message.msg_type == 'image'" class="chat_all_content_img" :src="message.text" alt="" />
           </div>
         </div>
-        <!-- 通知消息 -->
-        <!-- <div class="chat_all_content_noitfy" >xx加入聊天</div> -->
       </div>
       <!-- 底部栏 -->
-      <div class="chat_all_bottom" ref="chat_all_bottom">
+      <div class="chat_all_bottom" ref="qun_chat_all_bottom">
         <!-- 发送消息 -->
         <div class="chat_all_bottom_list">
-          <!-- <img @click="showMenuFn" src="../assets/icons/jia.svg" alt="" /> -->
-          <Uploader @click="showMenuFn" width="4.8vw" height="4.8vw" color="#979797" />
           <textarea id="textarea_message" v-model="messageText" type="text" placeholder="在此处键入" rows="1" @focus="activePlaceholderHeight(6.4)" @blur="cancelPlaceholderHeight(12.8)"></textarea>
-          <!-- <img @click="sendGroupMessage" src="../assets/icons/fasong.svg" alt="" /> -->
-          <Check @click="sendGroupMessage" width="4.8vw" height="4.8vw" :color="messageText.length > 0 ? '#3f51b5' : '#979797'" />
+          <img @click="showSmile" src="../assets/icons/smile.svg" class="chat_all_bottom_smile" alt="" />
+          <Check v-if="messageText.length > 0" @click="sendGroupMessage" width="7.2vw" height="7.2vw" :color="messageText.length > 0 ? '#3f51b5' : '#979797'" />
+          <CircleClose v-else @click="showMenuFn" width="7.2vw" height="7.2vw" style="transform: rotate(45deg)" :color="addBtnFlag ? '#3f51b5' : '#979797'" />
         </div>
-        <!-- 功能区域 -->
-        <div class="chat_all_bottom_tool">
+
+        <!-- 群聊 功能区域 -->
+        <!-- 点击加号 出来的内容 -->
+        <div v-show="addBtnFlag === true" class="chat_all_bottom_tool">
           <div class="chat_all_bottom_tool_item">
-            <img src="../assets/icons/lianxiren.svg" alt="" />
-            <span>联系</span>
+            <img src="../assets/toolimg/xaingce.svg" alt="" />
+            <span>相册</span>
           </div>
           <div class="chat_all_bottom_tool_item">
-            <img src="../assets/icons/tupian.svg" alt="" />
-            <span>图片</span>
+            <img src="../assets/toolimg/paishe.svg" alt="" />
+            <span>拍摄</span>
           </div>
           <div class="chat_all_bottom_tool_item">
-            <img src="../assets/icons/wenjian.svg" alt="" />
-            <span>文件</span>
-          </div>
-          <div class="chat_all_bottom_tool_item">
-            <img src="../assets/icons/weizhi.svg" alt="" />
+            <img src="../assets/toolimg/dingwei.svg" alt="" />
             <span>位置</span>
           </div>
           <div class="chat_all_bottom_tool_item">
-            <img src="../assets/icons/shengyin.svg" alt="" />
-            <span>声音</span>
+            <img src="../assets/toolimg/yuyin.svg" alt="" />
+            <span>语音输入</span>
+          </div>
+          <div class="chat_all_bottom_tool_item">
+            <img src="../assets/toolimg/geren.svg" alt="" />
+            <span>个人名片</span>
+          </div>
+          <div class="chat_all_bottom_tool_item">
+            <img src="../assets/toolimg/wenjian.svg" alt="" />
+            <span>文件</span>
           </div>
         </div>
+
+        <!-- 表情出来内容 -->
+        <div v-show="smileBtnFlag === true" class="chat_bottom_tool_smile">
+          <!-- 表情标题 -->
+          <div class="chat_bottom_tool_smile_title">
+            <span @click="smile_title_index(0)" :class="smileTitleIndex == 0 ? 'checked_tool_smile_title' : ''">❤️</span>
+            <span @click="smile_title_index(1)" :class="smileTitleIndex == 1 ? 'checked_tool_smile_title' : ''">😁</span>
+            <span @click="smile_title_index(2)" :class="smileTitleIndex == 2 ? 'checked_tool_smile_title' : ''">✌️</span>
+            <span @click="smile_title_index(3)" :class="smileTitleIndex == 3 ? 'checked_tool_smile_title' : ''">🐶</span>
+            <span @click="smile_title_index(4)" :class="smileTitleIndex == 4 ? 'checked_tool_smile_title' : ''">🍏</span>
+            <span @click="smile_title_index(5)" :class="smileTitleIndex == 5 ? 'checked_tool_smile_title' : ''">🥎</span>
+            <span @click="smile_title_index(6)" :class="smileTitleIndex == 6 ? 'checked_tool_smile_title' : ''">🚐</span>
+            <span @click="smile_title_index(7)" :class="smileTitleIndex == 7 ? 'checked_tool_smile_title' : ''">🎁</span>
+          </div>
+          <!-- 表情列表 -->
+          <div class="chat_bottom_tool_smile_list">
+            <!-- 渲染表情 -->
+            <div class="smile_list_item_like" v-show="smileTitleIndex == 0">
+              <div class="smile_list_item_like_add">
+                <Uploader style="width: 6.4vw; height: 6.4vw; color: #ccc"></Uploader>
+                <input type="file" accept="image/*" @change="changeSelectEmojiImg" />
+              </div>
+              <div class="smile_list_item_content" @click="selectEmojiImg(item.user_emoji_img)" v-for="(item, index) in userEmojiData" :key="index">
+                <img :src="item.user_emoji_img" alt="" />
+              </div>
+            </div>
+            <div class="smile_list_item" v-show="smileTitleIndex == 1">
+              <span @click="selectEmoji(item)" v-for="(item, index) in emojiCategories.faces" :key="index">{{ item }}</span>
+            </div>
+            <div class="smile_list_item" v-show="smileTitleIndex == 2">
+              <span @click="selectEmoji(item)" v-for="(item, index) in emojiCategories.gestures" :key="index">{{ item }}</span>
+            </div>
+            <div class="smile_list_item" v-show="smileTitleIndex == 3">
+              <span @click="selectEmoji(item)" v-for="(item, index) in emojiCategories.animals" :key="index">{{ item }}</span>
+            </div>
+            <div class="smile_list_item" v-show="smileTitleIndex == 4">
+              <span @click="selectEmoji(item)" v-for="(item, index) in emojiCategories.foods" :key="index">{{ item }}</span>
+            </div>
+            <div class="smile_list_item" v-show="smileTitleIndex == 5">
+              <span @click="selectEmoji(item)" v-for="(item, index) in emojiCategories.activities" :key="index">{{ item }}</span>
+            </div>
+            <div class="smile_list_item" v-show="smileTitleIndex == 6">
+              <span @click="selectEmoji(item)" v-for="(item, index) in emojiCategories.travel" :key="index">{{ item }}</span>
+            </div>
+            <div class="smile_list_item" v-show="smileTitleIndex == 7">
+              <span @click="selectEmoji(item)" v-for="(item, index) in emojiCategories.objects" :key="index">{{ item }}</span>
+            </div>
+          </div>
+        </div>
+
         <!-- 弹出层里面 2未读新消息提示 -->
         <div @click="cancelUnreadMessage" class="chat_all_unread_message animate__animated animate__pulse animate__infinite" v-show="unReadMessages_p.length > 0">
           <DouArrowUp style="transform: rotate(180deg)" />
@@ -115,7 +171,7 @@
       </div>
     </nut-popup>
 
-    <!-- 私聊 弹出层 -->
+    <!-- ///////////////////////////////私聊 弹出层///////////////////////////////////////////// -->
     <nut-popup v-model:visible="privateChatAllPopupState" position="right" :style="{ width: '100%', height: '100%' }">
       <!-- 顶部栏 -->
       <div class="chat_all_top">
@@ -131,55 +187,110 @@
       </div>
 
       <!-- 私聊内容区域 -->
-      <div @click="hideMenuFn" class="chat_all_content" ref="private_chat_all_content">
+      <div @touchstart="onPopupTouchStart" @touchmove="onPopupTouchMove" @touchend="onPopupTouchEnd" @click="p_hideAddMenu()" class="chat_all_content" ref="private_chat_all_content">
         <!-- 私聊消息列表 -->
         <div class="chat_all_content_info" v-for="(message, index) in private_messages_p" :key="index" :class="{ 'my-message': message.isMine }">
           <div v-show="message.to === private_user.user_people || message.username === private_user.user_people" class="chat_all_content_info_createtime">{{ message.create_time }}</div>
           <img v-show="message.to === private_user.user_people || message.username === private_user.user_people" :src="message.user_img" alt="" />
           <div v-show="message.to === private_user.user_people || message.username === private_user.user_people" class="chat_all_content_info_block">
             <div class="chat_all_content_info_time">{{ message.username }}</div>
-            <div class="chat_all_content_text">{{ message.text }}</div>
+            <!-- <div class="chat_all_content_text">{{ message.text }}</div> -->
+            <div v-show="message.msg_type == 'text'" class="chat_all_content_text">{{ message.text }}</div>
+            <img v-show="message.msg_type == 'image'" class="chat_all_content_img" :src="message.text" alt="" />
           </div>
         </div>
       </div>
 
       <!--  私聊  底部栏 -->
       <div class="chat_all_bottom" ref="chat_all_bottom">
-        <!-- 发送消息 -->
+        <!--私聊  发送消息 -->
         <div class="chat_all_bottom_list">
-          <Uploader @click="showMenuFn" width="4.8vw" height="4.8vw" color="#979797" />
           <textarea
             id="private_textarea_message"
             v-model="privateMessageText"
             type="text"
             placeholder="在此处键入"
             rows="1"
-            @focus="activePlaceholderHeight(6.4)"
-            @blur="cancelPlaceholderHeight(12.8)"
+            @focus="p_activePlaceholderHeight(6.4)"
+            @blur="p_cancelPlaceholderHeight(12.8)"
           ></textarea>
-          <Check @click="sendPrivateMessage" width="4.8vw" height="4.8vw" :color="privateMessageText.length > 0 ? '#3f51b5' : '#979797'" />
+          <img @click="p_showSmile" src="../assets/icons/smile.svg" class="private_chat_all_bottom_smile chat_all_bottom_smile" alt="" />
+          <Check v-if="privateMessageText.length > 0" @click="sendPrivateMessage" width="7.2vw" height="7.2vw" :color="privateMessageText.length > 0 ? '#3f51b5' : '#979797'" />
+          <CircleClose v-else @click="p_showAddMenu" width="7.2vw" height="7.2vw" style="transform: rotate(45deg)" :color="addBtnFlag ? '#3f51b5' : '#979797'" />
         </div>
-        <!-- 功能区域 -->
-        <div class="chat_all_bottom_tool">
+        <!--私聊 功能区域 -->
+        <div v-show="addBtnFlag === true" class="chat_all_bottom_tool">
           <div class="chat_all_bottom_tool_item">
-            <img src="../assets/icons/lianxiren.svg" alt="" />
-            <span>联系</span>
+            <img src="../assets/toolimg/xaingce.svg" alt="" />
+            <span>相册</span>
           </div>
           <div class="chat_all_bottom_tool_item">
-            <img src="../assets/icons/tupian.svg" alt="" />
-            <span>图片</span>
+            <img src="../assets/toolimg/paishe.svg" alt="" />
+            <span>拍摄</span>
           </div>
           <div class="chat_all_bottom_tool_item">
-            <img src="../assets/icons/wenjian.svg" alt="" />
-            <span>文件</span>
-          </div>
-          <div class="chat_all_bottom_tool_item">
-            <img src="../assets/icons/weizhi.svg" alt="" />
+            <img src="../assets/toolimg/dingwei.svg" alt="" />
             <span>位置</span>
           </div>
           <div class="chat_all_bottom_tool_item">
-            <img src="../assets/icons/shengyin.svg" alt="" />
-            <span>声音</span>
+            <img src="../assets/toolimg/yuyin.svg" alt="" />
+            <span>语音输入</span>
+          </div>
+          <div class="chat_all_bottom_tool_item">
+            <img src="../assets/toolimg/geren.svg" alt="" />
+            <span>个人名片</span>
+          </div>
+          <div class="chat_all_bottom_tool_item">
+            <img src="../assets/toolimg/wenjian.svg" alt="" />
+            <span>文件</span>
+          </div>
+        </div>
+        <!-- 表情出来内容 -->
+        <div v-show="smileBtnFlag === true" class="chat_bottom_tool_smile">
+          <!-- 表情标题 -->
+          <div class="chat_bottom_tool_smile_title">
+            <span @click="smile_title_index(0)" :class="smileTitleIndex == 0 ? 'checked_tool_smile_title' : ''">❤️</span>
+            <span @click="smile_title_index(1)" :class="smileTitleIndex == 1 ? 'checked_tool_smile_title' : ''">😁</span>
+            <span @click="smile_title_index(2)" :class="smileTitleIndex == 2 ? 'checked_tool_smile_title' : ''">✌️</span>
+            <span @click="smile_title_index(3)" :class="smileTitleIndex == 3 ? 'checked_tool_smile_title' : ''">🐶</span>
+            <span @click="smile_title_index(4)" :class="smileTitleIndex == 4 ? 'checked_tool_smile_title' : ''">🍏</span>
+            <span @click="smile_title_index(5)" :class="smileTitleIndex == 5 ? 'checked_tool_smile_title' : ''">🥎</span>
+            <span @click="smile_title_index(6)" :class="smileTitleIndex == 6 ? 'checked_tool_smile_title' : ''">🚐</span>
+            <span @click="smile_title_index(7)" :class="smileTitleIndex == 7 ? 'checked_tool_smile_title' : ''">🎁</span>
+          </div>
+          <!-- 表情列表 -->
+          <div class="chat_bottom_tool_smile_list">
+            <!-- 渲染表情 -->
+            <div class="smile_list_item_like" v-show="smileTitleIndex == 0">
+              <div class="smile_list_item_like_add private_smile_list_item_like_add">
+                <Uploader style="width: 6.4vw; height: 6.4vw; color: #ccc"></Uploader>
+                <input type="file" accept="image/*" @change="p_changeSelectEmojiImg" />
+              </div>
+              <div class="smile_list_item_content" @click="p_selectEmojiImg(item.user_emoji_img)" v-for="(item, index) in userEmojiData" :key="index">
+                <img :src="item.user_emoji_img" alt="" />
+              </div>
+            </div>
+            <div class="smile_list_item" v-show="smileTitleIndex == 1">
+              <span @click="p_selectEmoji(item)" v-for="(item, index) in emojiCategories.faces" :key="index">{{ item }}</span>
+            </div>
+            <div class="smile_list_item" v-show="smileTitleIndex == 2">
+              <span @click="p_selectEmoji(item)" v-for="(item, index) in emojiCategories.gestures" :key="index">{{ item }}</span>
+            </div>
+            <div class="smile_list_item" v-show="smileTitleIndex == 3">
+              <span @click="p_selectEmoji(item)" v-for="(item, index) in emojiCategories.animals" :key="index">{{ item }}</span>
+            </div>
+            <div class="smile_list_item" v-show="smileTitleIndex == 4">
+              <span @click="p_selectEmoji(item)" v-for="(item, index) in emojiCategories.foods" :key="index">{{ item }}</span>
+            </div>
+            <div class="smile_list_item" v-show="smileTitleIndex == 5">
+              <span @click="p_selectEmoji(item)" v-for="(item, index) in emojiCategories.activities" :key="index">{{ item }}</span>
+            </div>
+            <div class="smile_list_item" v-show="smileTitleIndex == 6">
+              <span @click="p_selectEmoji(item)" v-for="(item, index) in emojiCategories.travel" :key="index">{{ item }}</span>
+            </div>
+            <div class="smile_list_item" v-show="smileTitleIndex == 7">
+              <span @click="p_selectEmoji(item)" v-for="(item, index) in emojiCategories.objects" :key="index">{{ item }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -188,8 +299,8 @@
 </template>
 
 <script setup>
-import { MoreX, RectLeft, Uploader, Check, DouArrowUp } from "@nutui/icons-vue";
-import { ref, onMounted } from "vue";
+import { MoreX, RectLeft, Uploader, Check, DouArrowUp, CircleClose } from "@nutui/icons-vue";
+import { ref, onMounted, computed } from "vue";
 import "animate.css"; // 引入 Animate.css
 // 引入 Pinia store
 import { useCounterStore } from "@/stores/counter";
@@ -198,17 +309,18 @@ const store = useCounterStore(); // 可以在组件中的任意位置访问 `sto
 const { userInfo, unReadMessages_p, messages_p, onlineUser_p, unprivateMessages_p, private_messages_p } = storeToRefs(store); // 使用 storeToRefs 解构 store 中的响应式属性
 
 import { CONFIG } from "../config"; // 引入配置文件
-import { getOnlineUser, addOnlineUser, deleteOnlineUser } from "../api/allApi"; // 引入所有 API
-
+import { getOnlineUser, addOnlineUser, deleteOnlineUser, addUserEmoji, getUserEmoji } from "../api/allApi"; // 引入所有 API
 // 导入dayjs
 import dayjs from "dayjs";
+import { uploadFile } from "../utils/oss";
+import emojiCategories from "../utils/emoji"; // 引入表情工具函数
 
 const ws = ref(null); // websocket
 const username = ref(""); // 用户名
 const privateTo = ref(""); // 私聊对象
 const connected = ref(false); // 是否连接
 
-const tabIndexValue = ref("2"); // tab 标签页切换索引
+const tabIndexValue = ref("1"); // tab 标签页切换索引
 const messageText = ref(""); // 消息文本
 
 const private_user = ref(""); // 私聊对象用户
@@ -222,9 +334,197 @@ const privateMessageText = ref(""); // 私聊消息文本
 const chatAllPopupState = ref(false); // 群聊弹出层状态
 const privateChatAllPopupState = ref(false); // 私聊弹出层状态
 const chat_all_bottom = ref(null); // 底部栏ref
+const qun_chat_all_bottom = ref(null); // 群聊底部栏ref
+
 const chat_all_content = ref(null); // 内容区域ref
 const private_chat_all_content = ref(null); // 私聊内容区域ref
 
+const addBtnFlag = ref(false); // 是否显示添加按钮
+const smileBtnFlag = ref(false); // 是否显示表情状态按钮
+
+const smileTitleIndex = ref(0); // 表情标题索引
+
+const selectedFileImg = ref(null); // 选择的表情图片
+const emojiImageUrl = ref(""); // 表情图片 URL
+const userEmojiData = ref([]); // 用户表情数据
+
+const touch = ref({ x: 0, y: 0, moved: false }); // 触摸事件相关数据
+
+// *************************************************************************************************
+
+function onPopupTouchStart(e) {
+  const touchObj = e.touches[0];
+  touch.value = { x: touchObj.clientX, y: touchObj.clientY, moved: false };
+  console.log("onPopupTouchStart", touch.value);
+}
+
+function onPopupTouchMove(e) {
+  const touchObj = e.touches[0];
+  // 判断是否为右滑
+  if (touchObj.clientX - touch.value.x > 60 && Math.abs(touchObj.clientY - touch.value.y) < 40) {
+    touch.value.moved = true;
+  }
+}
+
+function onPopupTouchEnd() {
+  if (touch.value.moved) {
+    closeChatAllPopup(); // 关闭群聊弹出层
+    closePrivateChatPopup(); // 关闭私聊弹出层
+  }
+}
+// 群聊 点击表情包发送
+function selectEmojiImg(url) {
+  // console.log("点击了", url);
+  if (ws.value) {
+    ws.value.send(
+      JSON.stringify({
+        type: "group",
+        from: username.value,
+        message: url,
+        username: username.value,
+        create_time: dayjs().format("YYYY-MM-DD HH:mm:ss"),
+        user_img: userInfo.value.u_avatar,
+        msg_type: "image", // 消息类型
+      })
+    );
+    messages_p.value.push({ msg_type: "image", text: url, isMine: true, username: username.value, create_time: dayjs().format("YYYY-MM-DD HH:mm:ss"), user_img: userInfo.value.u_avatar });
+    hideMenuFn(); // 发送消息后隐藏菜单
+  }
+  // chat_all_content 滚动到最底部
+  setTimeout(() => {
+    chat_all_content.value.scrollTop = chat_all_content.value.scrollHeight;
+  }, 100);
+}
+
+// 私聊 点击表情包发送
+function p_selectEmojiImg(url) {
+  if (ws.value) {
+    ws.value.send(
+      JSON.stringify({
+        type: "private",
+        from: username.value, // 发送者
+        to: privateTo.value, // 接收者
+        message: url,
+        username: username.value,
+        create_time: dayjs().format("YYYY-MM-DD HH:mm:ss"),
+        user_img: userInfo.value.u_avatar,
+        msg_type: "image", // 消息类型
+      })
+    );
+
+    private_messages_p.value.push({
+      text: url,
+      isMine: true,
+      to: privateTo.value,
+      username: username.value,
+      create_time: dayjs().format("YYYY-MM-DD HH:mm:ss"),
+      user_img: userInfo.value.u_avatar,
+      msg_type: "image", // 消息类型
+    });
+    console.log("发送私聊消息", private_messages_p.value);
+  }
+  p_hideAddMenu(); // 发送消息后隐藏菜单
+  // 私聊消息列表滚动到最底部
+  setTimeout(() => {
+    private_chat_all_content.value.scrollTop = private_chat_all_content.value.scrollHeight;
+  }, 100);
+}
+
+// 函数 群聊选择表情图片
+async function changeSelectEmojiImg() {
+  const input = document.querySelector(".smile_list_item_like_add input[type='file']");
+  if (input && input.files && input.files.length > 0) {
+    const file = input.files[0];
+    selectedFileImg.value = file;
+    try {
+      const url = await uploadFile(selectedFileImg.value, "images/");
+      emojiImageUrl.value = url; // 设置表情图片 URL
+      selectedFileImg.value = null; // 清空选择的文件
+      // console.log("上传成功:", url);
+      // 添加表情到数据库
+      addUserEmoji({ user_id: userInfo.value.id, emoji_url: url }).then((res) => {
+        if (res.code === 200) {
+          // console.log("添加表情成功", res);
+          // 更新用户表情数据
+          userEmojiData.value.push({ user_emoji_img: url });
+        } else {
+          console.error("添加表情失败", res);
+        }
+      });
+    } catch (error) {
+      console.error("上传失败:", error);
+    }
+  }
+}
+
+// 函数 私聊选择表情图片
+async function p_changeSelectEmojiImg() {
+  const input = document.querySelector(".private_smile_list_item_like_add input[type='file']");
+  if (input && input.files && input.files.length > 0) {
+    const file = input.files[0];
+    selectedFileImg.value = file;
+    try {
+      const url = await uploadFile(selectedFileImg.value, "images/");
+      emojiImageUrl.value = url; // 设置表情图片 URL
+      selectedFileImg.value = null; // 清空选择的文件
+      // console.log("上传成功:", url);
+      // 添加表情到数据库
+      addUserEmoji({ user_id: userInfo.value.id, emoji_url: url }).then((res) => {
+        if (res.code === 200) {
+          // console.log("添加表情成功", res);
+          // 更新用户表情数据
+          userEmojiData.value.push({ user_emoji_img: url });
+        } else {
+          console.error("添加表情失败", res);
+        }
+      });
+    } catch (error) {
+      console.error("上传失败:", error);
+    }
+  }
+}
+
+// 函数 群聊点击表情的时候
+function selectEmoji(item) {
+  // 获取 textarea 元素
+  const textarea = document.getElementById("textarea_message");
+  if (textarea) {
+    // 在光标位置插入表情
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const textBefore = textarea.value.substring(0, start);
+    const textAfter = textarea.value.substring(end);
+    textarea.value = textBefore + item + textAfter;
+    // 设置光标位置到插入的表情后面
+    textarea.selectionStart = textarea.selectionEnd = start + item.length;
+    // 触发 input 事件以更新 v-model
+    textarea.dispatchEvent(new Event("input"));
+  }
+}
+// 函数 私聊点击表情的时候
+function p_selectEmoji(item) {
+  // 获取 textarea 元素
+  const textarea = document.getElementById("private_textarea_message");
+  if (textarea) {
+    // 在光标位置插入表情
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const textBefore = textarea.value.substring(0, start);
+    const textAfter = textarea.value.substring(end);
+    textarea.value = textBefore + item + textAfter;
+    // 设置光标位置到插入的表情后面
+    textarea.selectionStart = textarea.selectionEnd = start + item.length;
+    // 触发 input 事件以更新 v-model
+    textarea.dispatchEvent(new Event("input"));
+  }
+}
+
+// 函数 表情标题索引
+function smile_title_index(index) {
+  smileTitleIndex.value = index;
+}
+
+//  首次进入页面加载数据
 onMounted(() => {
   // 随机用户名
   username.value = userInfo.value.u_name;
@@ -250,6 +550,14 @@ onMounted(() => {
     if (res.code === 200) {
       // 排除自己,不可以和自己单聊
       onlineUser_p.value = res.data.filter((user) => user.user_people !== username.value);
+    }
+  });
+
+  // 获取用户表情数据
+  getUserEmoji(userInfo.value.id).then((res) => {
+    if (res.code === 200) {
+      userEmojiData.value = res.data;
+      // console.log("用户表情数据", userEmojiData.value);
     }
   });
 });
@@ -305,7 +613,7 @@ function connect() {
             console.error("播放音频失败:", error);
           });
         }
-      } else if (data.type === "private") {
+      } else if (data.type === "private" && !privateChatAllPopupState.value) {
         // 如果私聊弹出层没有打开，则将消息添加到未读私聊消息列表
         unprivateMessages_p.value.push(data);
 
@@ -331,6 +639,7 @@ function connect() {
         username: data.from,
         create_time: data.create_time,
         user_img: data.user_img,
+        msg_type: data.msg_type, // 消息类型
       });
       privateMessageText.value = ""; // 清空私聊输入框
 
@@ -345,7 +654,7 @@ function connect() {
     // 群聊消息
     if (data.type === "group") {
       // 群消息和私聊消息
-      messages_p.value.push({ text: `${data.message}`, isMine: data.from === username.value, username: data.from, create_time: data.create_time, user_img: data.user_img });
+      messages_p.value.push({ msg_type: data.msg_type, text: `${data.message}`, isMine: data.from === username.value, username: data.from, create_time: data.create_time, user_img: data.user_img });
 
       // chat_all_content //监测下方是否有最新消息,不应该直接滚动到最底部
       setTimeout(() => {
@@ -370,10 +679,12 @@ function sendGroupMessage() {
         username: username.value,
         create_time: dayjs().format("YYYY-MM-DD HH:mm:ss"),
         user_img: userInfo.value.u_avatar,
+        msg_type: "text", // 消息类型
       })
     );
-    messages_p.value.push({ text: messageText.value, isMine: true, username: username.value, create_time: dayjs().format("YYYY-MM-DD HH:mm:ss"), user_img: userInfo.value.u_avatar });
+    messages_p.value.push({ msg_type: "text", text: messageText.value, isMine: true, username: username.value, create_time: dayjs().format("YYYY-MM-DD HH:mm:ss"), user_img: userInfo.value.u_avatar });
     messageText.value = "";
+    hideMenuFn(); // 发送消息后隐藏菜单
   }
 
   // chat_all_content 滚动到最底部
@@ -394,6 +705,7 @@ const sendPrivateMessage = () => {
         username: username.value,
         create_time: dayjs().format("YYYY-MM-DD HH:mm:ss"),
         user_img: userInfo.value.u_avatar,
+        msg_type: "text", // 消息类型
       })
     );
 
@@ -404,6 +716,7 @@ const sendPrivateMessage = () => {
       username: username.value,
       create_time: dayjs().format("YYYY-MM-DD HH:mm:ss"),
       user_img: userInfo.value.u_avatar,
+      msg_type: "text", // 消息类型
     });
     privateMessageText.value = "";
     console.log("发送私聊消息", private_messages_p.value);
@@ -415,19 +728,111 @@ const sendPrivateMessage = () => {
 };
 
 // 函数 隐藏菜单
+import smile_img from "../assets/icons/smile.svg"; // 引入表情图片
+// 函数 点击表情切换svg图片
+import smiledImg from "../assets/icons/smiled.svg"; // 引入表情图片
+
+// 群聊 隐藏加号和表情功能区域
 function hideMenuFn() {
-  // 向下移动200px
-  chat_all_bottom.value.style.transform = "translateY(26.6667vw)";
-  // 加上过渡效果
-  chat_all_bottom.value.style.transition = "all 0.3s";
+  // 隐藏加号功能区域
+  if (addBtnFlag.value) {
+    addBtnFlag.value = false;
+    // 群聊  隐藏加号功能区域
+    qun_chat_all_bottom.value.style.transform = "translateY(43.6667vw)";
+    qun_chat_all_bottom.value.style.transition = "all 0.3s";
+  }
+
+  // 隐藏表情功能区域
+  if (smileBtnFlag.value) {
+    smileBtnFlag.value = false;
+    const smileImg = document.querySelector(".chat_all_bottom_smile");
+    smileImg.src = smile_img; // 恢复表情图片
+
+    //群聊 表情功能区
+    qun_chat_all_bottom.value.style.transform = "translateY(78vw)";
+    qun_chat_all_bottom.value.style.transition = "all 0.3s";
+  }
 }
 
-// 函数 显示菜单
+// 群聊 显示添加函数菜单
 function showMenuFn() {
-  console.log(chat_all_bottom.value);
-  // 向上移动200px
+  smileBtnFlag.value = false; // 隐藏表情功能区域
+  addBtnFlag.value = true; // 显示加号功能区域
+  // 群聊  移动加号功能区
+  qun_chat_all_bottom.value.style.transform = "translateY(0)";
+  qun_chat_all_bottom.value.style.transition = "all 0.3s";
+
+  if (!smileBtnFlag.value) {
+    // 修改 qun_chat_all_bottom 高度65vw
+    qun_chat_all_bottom.value.style.height = "65vw"; // 恢复高度
+    const smileImg = document.querySelector(".chat_all_bottom_smile");
+    smileImg.src = smile_img; // 恢复表情图片
+  }
+}
+
+// 群聊 显示表情功能区域
+function showSmile() {
+  addBtnFlag.value = false; // 隐藏加号功能区域
+  smileBtnFlag.value = true; // 显示表情功能区域
+  if (smileBtnFlag.value) {
+    // 修改 qun_chat_all_bottom 高度100vw
+    qun_chat_all_bottom.value.style.height = "100vw";
+    const smileImg = document.querySelector(".chat_all_bottom_smile");
+    smileImg.src = smiledImg; // 切换表情图片
+  }
+
+  qun_chat_all_bottom.value.style.transform = "translateY(0)";
+  qun_chat_all_bottom.value.style.transition = "all 0.3s";
+}
+
+// 私聊 隐藏加号和表情功能区域
+function p_hideAddMenu() {
+  // 隐藏加号功能区域
+  if (addBtnFlag.value) {
+    addBtnFlag.value = false;
+    // 群聊  隐藏加号功能区域
+    chat_all_bottom.value.style.transform = "translateY(43.6667vw)";
+    chat_all_bottom.value.style.transition = "all 0.3s";
+  }
+
+  // 隐藏表情功能区域
+  if (smileBtnFlag.value) {
+    smileBtnFlag.value = false;
+    const smileImg = document.querySelector(".private_chat_all_bottom_smile");
+    smileImg.src = smile_img; // 恢复表情图片
+
+    //群聊 表情功能区
+    chat_all_bottom.value.style.transform = "translateY(78vw)";
+    chat_all_bottom.value.style.transition = "all 0.3s";
+  }
+}
+
+function p_showAddMenu() {
+  smileBtnFlag.value = false; // 隐藏表情功能区域
+  addBtnFlag.value = true; // 显示加号功能区域
+  // 群聊  移动加号功能区
   chat_all_bottom.value.style.transform = "translateY(0)";
-  // 加上过渡效果
+  chat_all_bottom.value.style.transition = "all 0.3s";
+
+  if (!smileBtnFlag.value) {
+    // 修改 chat_all_bottom 高度65vw
+    chat_all_bottom.value.style.height = "65vw"; // 恢复高度
+    const smileImg = document.querySelector(".private_chat_all_bottom_smile");
+    smileImg.src = smile_img; // 恢复表情图片
+  }
+}
+
+function p_showSmile() {
+  addBtnFlag.value = false; // 隐藏加号功能区域
+  smileBtnFlag.value = true; // 显示表情功能区域
+  if (smileBtnFlag.value) {
+    // 修改 qun_chat_all_bottom 高度100vw
+    chat_all_bottom.value.style.height = "100vw";
+    const smileImg = document.querySelector(".private_chat_all_bottom_smile");
+    smileImg.src = smiledImg; // 切换表情图片
+  }
+
+  chat_all_bottom.value.style.transform = "translateY(0)";
   chat_all_bottom.value.style.transition = "all 0.3s";
 }
 
@@ -462,19 +867,15 @@ function closeChatAllPopup() {
 function activePlaceholderHeight(value) {
   // 隐藏菜单
   hideMenuFn();
+
   // 群聊输入框
   const textarea = document.querySelector("#textarea_message");
   if (textarea) {
     // 设置高度为自动
     textarea.style = `line-height: ${value}vw;transition: all 0.3s;`;
   }
-  // 获取私聊输入框
-  const private_textarea = document.querySelector("#private_textarea_message");
-  if (private_textarea) {
-    // 设置高度为自动
-    private_textarea.style = `line-height: ${value}vw;transition: all 0.3s;`;
-  }
 }
+
 // 函数 取消激活输入框时的高度变化
 function cancelPlaceholderHeight(value) {
   // 群聊输入框
@@ -483,6 +884,13 @@ function cancelPlaceholderHeight(value) {
     // 设置高度为自动
     textarea.style = `line-height: ${value}vw;transition: all 0.3s;`;
   }
+}
+
+// 函数 私聊激活输入框时的高度变化
+function p_activePlaceholderHeight(value) {
+  // 隐藏菜单
+  p_hideAddMenu();
+
   // 私聊输入框
   const private_textarea = document.querySelector("#private_textarea_message");
   if (private_textarea) {
@@ -490,6 +898,16 @@ function cancelPlaceholderHeight(value) {
     private_textarea.style = `line-height: ${value}vw;transition: all 0.3s;`;
   }
 }
+
+function p_cancelPlaceholderHeight(value) {
+  // 私聊输入框
+  const private_textarea = document.querySelector("#private_textarea_message");
+  if (private_textarea) {
+    // 设置高度为自动
+    private_textarea.style = `line-height: ${value}vw;transition: all 0.3s;`;
+  }
+}
+
 // 函数 根据传入的时间 设置成今天 • 10:30 这种格式 23:4 设置成23:04
 function formatTime(date) {
   if (!date) return ""; // 如果没有日期，返回空字符串
@@ -591,6 +1009,9 @@ function show_private_count(user, item) {
 
 <style lang="scss" scoped>
 .Chat {
+  :deep(.nut-tabs__content) {
+    height: calc(100vh - 21.3333vw - 14.9333vw);
+  }
   .ellipsis {
     overflow: hidden; /* 隐藏溢出内容 */
     white-space: nowrap; /* 禁止文本换行 */
@@ -620,6 +1041,13 @@ function show_private_count(user, item) {
       margin-bottom: 3.2vw;
       position: relative;
       padding-top: 6.4vw;
+      .chat_all_content_img {
+        width: 26.6667vw;
+        height: 26.6667vw;
+        border-radius: 0%;
+        object-fit: contain;
+        object-position: left center;
+      }
       .private_chat_content_info_block {
       }
       .chat_all_content_info_createtime {
@@ -660,6 +1088,7 @@ function show_private_count(user, item) {
     .my-message {
       justify-content: flex-start;
       flex-direction: row-reverse;
+
       img {
         margin-right: 0;
         margin-left: 2.1333vw;
@@ -667,7 +1096,13 @@ function show_private_count(user, item) {
 
       .chat_all_content_info_block {
         text-align: right;
-
+        .chat_all_content_img {
+          width: 26.6667vw;
+          height: 26.6667vw;
+          border-radius: 0%;
+          object-fit: contain;
+          object-position: right center;
+        }
         .chat_all_content_text {
           background-color: #3f51b5;
           color: #fff;
@@ -680,6 +1115,16 @@ function show_private_count(user, item) {
   }
   .chat_all_bottom {
     position: relative;
+    position: fixed;
+    bottom: 0;
+    width: 100vw;
+    height: 65vw;
+    border-radius: 4.2667vw 4.2667vw 0 0;
+    background: rgba(255, 255, 255, 1);
+    box-shadow: 0vw 0vw 2.1333vw rgba(0, 0, 0, 0.08);
+    padding: 4.2667vw 0;
+    box-sizing: border-box;
+    transform: translateY(43.6667vw);
     .chat_all_unread_message {
       display: flex;
       align-items: center;
@@ -693,26 +1138,106 @@ function show_private_count(user, item) {
       border-radius: 10.3333vw;
       box-shadow: 0px 0px 2.1333vw rgba(0, 0, 0, 0.08);
     }
+
+    .chat_bottom_tool_smile {
+      width: 100%;
+      height: 180vw;
+      .checked_tool_smile_title {
+        border-radius: 1.8vw 1.8vw 0 0;
+        background-color: #ccc;
+      }
+      .chat_bottom_tool_smile_title {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        height: 8.8vw;
+        padding-left: 2.6667vw;
+        span {
+          width: 11.8vw;
+          height: 8.8vw;
+          line-height: 8.8vw;
+          font-size: 6.4vw;
+          text-align: center;
+        }
+      }
+      .chat_bottom_tool_smile_list {
+        background-color: #f7f7f7;
+        height: 106.6667vw;
+        .smile_list_item_like {
+          display: flex;
+          flex-wrap: wrap;
+          .smile_list_item_like_add {
+            border: #ccc dashed 0.5333vw;
+            box-sizing: border-box;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 12.8vw;
+            height: 12.8vw;
+            margin: 2.6667vw;
+            position: relative;
+            input {
+              width: 12.8vw;
+              height: 12.8vw;
+              opacity: 0;
+              position: absolute;
+              top: 0;
+              left: 0;
+              z-index: 1;
+            }
+          }
+          .smile_list_item_content {
+            width: 12.8vw;
+            height: 12.8vw;
+            margin: 2.6667vw;
+            img {
+              width: 12.8vw;
+              height: 12.8vw;
+            }
+          }
+        }
+        .smile_list_item {
+          overflow-y: auto;
+          height: 68vw;
+          width: 94.6667vw;
+          margin: 0 auto;
+          span {
+            display: inline-block;
+            width: 6.4vw;
+            height: 6.4vw;
+            font-size: 6.4vw;
+            margin: 2.6667vw;
+            text-align: center;
+            line-height: 6.4vw;
+          }
+        }
+      }
+    }
     .chat_all_bottom_tool {
       display: flex;
-      overflow-x: auto;
-      /* 滚动条透明 */
-      &::-webkit-scrollbar {
-        display: none;
-      }
+      flex-wrap: wrap;
+      padding: 2.6667vw;
+      background-color: #f7f7f7;
       .chat_all_bottom_tool_item {
-        width: 14.9333vw;
-        height: 21.8667vw;
+        width: 23.4667vw;
+        /* height: 23.4667vw; */
         display: flex;
         flex-direction: column;
+        align-items: center;
         text-align: center;
         color: rgba(175, 175, 175, 1);
         vertical-align: top;
-        margin-right: 7.4667vw;
+        margin-bottom: 2.6667vw;
+        span {
+          font-size: 3.2vw;
+          margin-top: 1.3333vw;
+        }
         img {
-          width: 14.9333vw;
-          height: 14.93333vw;
-          margin-bottom: 1.0667vw;
+          width: 35%;
+          height: 35%;
+          padding: 2.6667vw;
+          background-color: #fff;
+          border-radius: 2.6667vw;
         }
         &:nth-child(5) {
           margin-right: 0;
@@ -724,17 +1249,12 @@ function show_private_count(user, item) {
       align-items: center;
       justify-content: space-evenly;
       margin-bottom: 4.2667vw;
+      .chat_all_bottom_smile {
+        width: 8.2vw;
+        height: 8.2vw;
+      }
     }
-    position: fixed;
-    bottom: 0;
-    width: 100vw;
-    height: 48vw;
-    border-radius: 4.2667vw 4.2667vw 0 0;
-    background: rgba(255, 255, 255, 1);
-    box-shadow: 0vw 0vw 2.1333vw rgba(0, 0, 0, 0.08);
-    padding: 4.2667vw;
-    box-sizing: border-box;
-    transform: translateY(26.6667vw);
+
     textarea {
       width: 72.2667vw;
       height: 12.8vw;
@@ -744,8 +1264,8 @@ function show_private_count(user, item) {
       border-radius: 6.4vw;
       background: rgba(249, 249, 249, 1);
       padding: 0 4.2667vw;
-      margin-left: 3.2vw;
-      margin-right: 4.2667vw;
+      /* margin-left: 3.2vw; */
+      /* margin-right: 4.2667vw; */
       box-sizing: border-box;
       &::placeholder {
         font-size: 4.2667vw;

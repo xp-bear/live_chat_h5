@@ -6,4 +6,10 @@ export const CONFIG = {
   production: {
     BASE_API: "https://api.example.com",
   },
+  oss: {
+    region: "oss-cn-wuhan-lr", // 你的OSS region
+    accessKeyId: "", // 替换为你的accessKeyId
+    accessKeySecret: "", // 替换为你的accessKeySecret
+    bucket: "xp-cdn-oss", // 替换为你的bucket名称
+  },
 };

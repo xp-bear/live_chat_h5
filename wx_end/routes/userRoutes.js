@@ -15,4 +15,8 @@ router.get("/get_online_user", userController.getOnlineUser);
 // 根据用户名删除在线用户
 router.post("/delete_online_user", userController.deleteOnlineUser);
 
+// 根据用户ID添加表情包图片
+router.post("/add_user_emoji", userController.addUserEmoji);
+// 根据用户ID查询表情包图片
+router.get("/get_user_emoji", userController.getUserEmoji);
 module.exports = router;

@@ -1,6 +1,24 @@
 const dbService = require("../services/dbService");
 
 const userController = {
+  getUserEmoji: async (req, res) => {
+    const { user_id } = req.query;
+    try {
+      const emojis = await dbService.query("SELECT * FROM user_emoji WHERE user_id = ?", [user_id]);
+      res.json({ code: 200, data: emojis });
+    } catch (error) {
+      res.status(500).json({ error: "获取表情包失败" });
+    }
+  },
+  addUserEmoji: async (req, res) => {
+    const { user_id, emoji_url } = req.body;
+    try {
+      const result = await dbService.query("INSERT INTO user_emoji (user_id, user_emoji_img) VALUES (?, ?)", [user_id, emoji_url]);
+      res.json({ code: 200, message: "表情包添加成功", data: result });
+    } catch (error) {
+      res.status(500).json({ error: "添加表情包失败" });
+    }
+  },
   deleteOnlineUser: async (req, res) => {
     const { user_people } = req.body;
     try {

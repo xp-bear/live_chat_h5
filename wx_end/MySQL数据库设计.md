@@ -14,7 +14,12 @@
 | 主键 | 更新时间    | varchar      | info   | varchar      | varchar        | varchar              |      |
 | 自增 |             | 提示用户信息 | 固定值 | 头像图片链接 | 加入聊天的用户 | 判断是否加入还是离开 |      |
 
+## user_emoji表
 
+| id   | create_time | user_id                | user_emoji_img      |
+| ---- | ----------- | ---------------------- | ---------------- |
+| 主键 | 创建时间    | int                    | varchar          |
+| 自增 |             | 对应是哪一个用户的表情 | 对应表情图片链接 |
 
 
 

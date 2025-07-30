@@ -36,11 +36,13 @@ server.on("connection", (ws) => {
         break;
       case "private":
         if (clients[data.to]) {
-          clients[data.to].send(JSON.stringify({ from: data.from, to: data.to, message: data.message, type: "private", create_time: data.create_time, user_img: data.user_img }));
+          clients[data.to].send(
+            JSON.stringify({ msg_type: data.msg_type, from: data.from, to: data.to, message: data.message, type: "private", create_time: data.create_time, user_img: data.user_img })
+          );
         }
         break;
       case "group":
-        broadcast({ from: data.from, message: data.message, type: "group", create_time: data.create_time, user_img: data.user_img }, data.from);
+        broadcast({ msg_type: data.msg_type, from: data.from, message: data.message, type: "group", create_time: data.create_time, user_img: data.user_img }, data.from);
         break;
     }
   });
