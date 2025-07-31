@@ -71,9 +71,15 @@
           <div class="chat_all_content_info_block">
             <div class="chat_all_content_info_time">{{ message.username }}</div>
             <div v-show="message.msg_type == 'text'" class="chat_all_content_text">{{ message.text }}</div>
-            <img v-show="message.msg_type == 'image'" class="chat_all_content_img" :src="message.text" alt="" />
+            <img @click="showBigImg(message.text)" v-show="message.msg_type == 'image'" class="chat_all_content_img" :src="message.text" alt="" />
           </div>
         </div>
+        <!-- 点击图片遮罩层 -->
+        <nut-overlay v-model:visible="showBigImgFlag">
+          <div class="overlay-body">
+            <img class="overlay-content" :src="showBigImgUrl" alt="" />
+          </div>
+        </nut-overlay>
       </div>
       <!-- 底部栏 -->
       <div class="chat_all_bottom" ref="qun_chat_all_bottom">
@@ -135,8 +141,11 @@
                 <Uploader style="width: 6.4vw; height: 6.4vw; color: #ccc"></Uploader>
                 <input type="file" accept="image/*" @change="changeSelectEmojiImg" />
               </div>
-              <div class="smile_list_item_content" @click="selectEmojiImg(item.user_emoji_img)" v-for="(item, index) in userEmojiData" :key="index">
-                <img :src="item.user_emoji_img" alt="" />
+              <div class="smile_list_item_content" v-for="(item, index) in userEmojiData" :key="index">
+                <div class="mile_list_item_container">
+                  <img @click="selectEmojiImg(item.user_emoji_img)" :src="item.user_emoji_img + '?x-oss-process=image/resize,l_100'" alt="" />
+                  <div class="del_smile_list_item">删除</div>
+                </div>
               </div>
             </div>
             <div class="smile_list_item" v-show="smileTitleIndex == 1">
@@ -196,11 +205,16 @@
             <div class="chat_all_content_info_time">{{ message.username }}</div>
             <!-- <div class="chat_all_content_text">{{ message.text }}</div> -->
             <div v-show="message.msg_type == 'text'" class="chat_all_content_text">{{ message.text }}</div>
-            <img v-show="message.msg_type == 'image'" class="chat_all_content_img" :src="message.text" alt="" />
+            <img @click="showBigImg(message.text)" v-show="message.msg_type == 'image'" class="chat_all_content_img" :src="message.text" alt="" />
           </div>
         </div>
+        <!-- 点击图片遮罩层 -->
+        <nut-overlay v-model:visible="showBigImgFlag">
+          <div class="overlay-body">
+            <img class="overlay-content" :src="showBigImgUrl" alt="" />
+          </div>
+        </nut-overlay>
       </div>
-
       <!--  私聊  底部栏 -->
       <div class="chat_all_bottom" ref="chat_all_bottom">
         <!--私聊  发送消息 -->
@@ -266,8 +280,11 @@
                 <Uploader style="width: 6.4vw; height: 6.4vw; color: #ccc"></Uploader>
                 <input type="file" accept="image/*" @change="p_changeSelectEmojiImg" />
               </div>
-              <div class="smile_list_item_content" @click="p_selectEmojiImg(item.user_emoji_img)" v-for="(item, index) in userEmojiData" :key="index">
-                <img :src="item.user_emoji_img" alt="" />
+              <div class="smile_list_item_content" v-for="(item, index) in userEmojiData" :key="index">
+                <div class="mile_list_item_container">
+                  <img @click="p_selectEmojiImg(item.user_emoji_img)" :src="item.user_emoji_img + '?x-oss-process=image/resize,l_100'" alt="" />
+                  <div class="del_smile_list_item">删除</div>
+                </div>
               </div>
             </div>
             <div class="smile_list_item" v-show="smileTitleIndex == 1">
@@ -300,7 +317,7 @@
 
 <script setup>
 import { MoreX, RectLeft, Uploader, Check, DouArrowUp, CircleClose } from "@nutui/icons-vue";
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, createVNode } from "vue";
 import "animate.css"; // 引入 Animate.css
 // 引入 Pinia store
 import { useCounterStore } from "@/stores/counter";
@@ -314,6 +331,7 @@ import { getOnlineUser, addOnlineUser, deleteOnlineUser, addUserEmoji, getUserEm
 import dayjs from "dayjs";
 import { uploadFile } from "../utils/oss";
 import emojiCategories from "../utils/emoji"; // 引入表情工具函数
+import { ActionSheet } from "@nutui/nutui";
 
 const ws = ref(null); // websocket
 const username = ref(""); // 用户名
@@ -350,12 +368,23 @@ const userEmojiData = ref([]); // 用户表情数据
 
 const touch = ref({ x: 0, y: 0, moved: false }); // 触摸事件相关数据
 
+const showBigImgFlag = ref(false); // 是否显示大图
+const showBigImgUrl = ref(""); // 大图 URL
+
+const private_emoji_img = ref(null); // 长按目标元素
+const emoji_img = ref(null); // 长按目标元素
+
 // *************************************************************************************************
+
+// 点击图片显示大图
+function showBigImg(url) {
+  showBigImgUrl.value = url; // 设置大图 URL
+  showBigImgFlag.value = true; // 显示大图弹出层
+}
 
 function onPopupTouchStart(e) {
   const touchObj = e.touches[0];
   touch.value = { x: touchObj.clientX, y: touchObj.clientY, moved: false };
-  console.log("onPopupTouchStart", touch.value);
 }
 
 function onPopupTouchMove(e) {
@@ -370,6 +399,7 @@ function onPopupTouchEnd() {
   if (touch.value.moved) {
     closeChatAllPopup(); // 关闭群聊弹出层
     closePrivateChatPopup(); // 关闭私聊弹出层
+    showBigImgFlag.value = false; // 关闭大图弹出层
   }
 }
 // 群聊 点击表情包发送
@@ -695,6 +725,7 @@ function sendGroupMessage() {
 
 // 函数 发送私聊消息
 const sendPrivateMessage = () => {
+  console.log("发送私聊消息", private_messages_p.value);
   if (ws.value && privateTo.value && privateMessageText.value) {
     ws.value.send(
       JSON.stringify({
@@ -719,7 +750,7 @@ const sendPrivateMessage = () => {
       msg_type: "text", // 消息类型
     });
     privateMessageText.value = "";
-    console.log("发送私聊消息", private_messages_p.value);
+    p_hideAddMenu(); // 发送消息后隐藏菜单
   }
   // 私聊消息列表滚动到最底部
   setTimeout(() => {
@@ -1010,7 +1041,7 @@ function show_private_count(user, item) {
 <style lang="scss" scoped>
 .Chat {
   :deep(.nut-tabs__content) {
-    height: calc(100vh - 21.3333vw - 14.9333vw);
+    height: calc(100vh - 21.3333vw - 18.9333vw);
   }
   .ellipsis {
     overflow: hidden; /* 隐藏溢出内容 */
@@ -1083,6 +1114,15 @@ function show_private_count(user, item) {
         transform: translateY(-1.6vw);
         color: rgba(175, 175, 175, 1);
         padding: 0 1.3333vw;
+      }
+    }
+    .overlay-body {
+      display: flex;
+      height: 100%;
+      align-items: center;
+      justify-content: center;
+      .overlay-content {
+        width: 80%;
       }
     }
     .my-message {
@@ -1190,9 +1230,30 @@ function show_private_count(user, item) {
             width: 12.8vw;
             height: 12.8vw;
             margin: 2.6667vw;
-            img {
-              width: 12.8vw;
+            overflow: auto;
+            /* 透明滚动条 */
+            &::-webkit-scrollbar {
+              display: none; /* Chrome/Safari/Opera */
+            }
+            .mile_list_item_container {
+              width: 25.6vw;
               height: 12.8vw;
+              display: flex;
+              img {
+                width: 12.8vw;
+                height: 12.8vw;
+              }
+              .del_smile_list_item {
+                width: 12.8vw;
+                height: 12.8vw;
+                text-align: center;
+                line-height: 12.8vw;
+                background-color: #f92b25;
+                color: #fff;
+                font-weight: 600;
+                font-size: 3.2vw;
+                border-radius: 50%;
+              }
             }
           }
         }
