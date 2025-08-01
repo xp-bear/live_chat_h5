@@ -1,6 +1,15 @@
 const dbService = require("../services/dbService");
 
 const userController = {
+  deleteUserEmoji: async (req, res) => {
+    const { id } = req.body;
+    try {
+      await dbService.query("DELETE FROM user_emoji WHERE id = ?", [id]);
+      res.json({ code: 200, message: "表情包图片已删除" });
+    } catch (error) {
+      res.status(500).json({ error: "删除表情包图片失败" });
+    }
+  },
   getUserEmoji: async (req, res) => {
     const { user_id } = req.query;
     try {

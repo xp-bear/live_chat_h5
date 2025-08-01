@@ -19,4 +19,7 @@ router.post("/delete_online_user", userController.deleteOnlineUser);
 router.post("/add_user_emoji", userController.addUserEmoji);
 // 根据用户ID查询表情包图片
 router.get("/get_user_emoji", userController.getUserEmoji);
+// 根据表情包图片ID删除表情包图片
+router.post("/delete_user_emoji", userController.deleteUserEmoji);
+
 module.exports = router;

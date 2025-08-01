@@ -65,3 +65,12 @@ export function getUserEmoji(userId) {
     params: { user_id: userId },
   });
 }
+
+// 删除用户表情包
+export function deleteUserEmoji(id) {
+  return request({
+    url: "/api/delete_user_emoji",
+    method: "post",
+    data: { id },
+  });
+}

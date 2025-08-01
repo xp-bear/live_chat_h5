@@ -15,7 +15,7 @@
             <img src="https://xp-cdn-oss.oss-cn-wuhan-lr.aliyuncs.com/cookies/quanyuan.jpeg" alt="" />
             <div class="qunliao_list_info_txt">
               <span>
-                全员群
+                全员群({{ onlineUser_p.length + 1 }})
                 <span class="qunliao_list_info_txt_time"> {{ formatTime(messages_p[messages_p.length - 1]?.create_time) }} </span>
               </span>
               <span class="ellipsis"> {{ messages_p[messages_p.length - 1]?.text || "暂无新消息" }} </span>
@@ -55,7 +55,7 @@
           <RectLeft @click="closeChatAllPopup" width="4.8vw" height="4.8vw" />
           <img src="https://xp-cdn-oss.oss-cn-wuhan-lr.aliyuncs.com/cookies/quanyuan.jpeg" alt="" />
           <div class="chat_all_top_state">
-            <span>全员群</span>
+            <span>全员群({{ onlineUser_p.length + 1 }})</span>
             <span><i class="chat_all_top_dot"></i>在线</span>
           </div>
         </div>
@@ -75,11 +75,13 @@
           </div>
         </div>
         <!-- 点击图片遮罩层 -->
-        <nut-overlay v-model:visible="showBigImgFlag">
+        <!-- <nut-overlay v-model:visible="showBigImgFlag">
           <div class="overlay-body">
             <img class="overlay-content" :src="showBigImgUrl" alt="" />
           </div>
-        </nut-overlay>
+        </nut-overlay> -->
+        <!-- 图片预览区域 -->
+        <nut-image-preview :show-index="false" :show="showBigImgFlag" :images="[{ src: showBigImgUrl }]" @close="hideBigImg" />
       </div>
       <!-- 底部栏 -->
       <div class="chat_all_bottom" ref="qun_chat_all_bottom">
@@ -133,7 +135,7 @@
             <span @click="smile_title_index(6)" :class="smileTitleIndex == 6 ? 'checked_tool_smile_title' : ''">🚐</span>
             <span @click="smile_title_index(7)" :class="smileTitleIndex == 7 ? 'checked_tool_smile_title' : ''">🎁</span>
           </div>
-          <!-- 表情列表 -->
+          <!-- 群聊 表情列表 -->
           <div class="chat_bottom_tool_smile_list">
             <!-- 渲染表情 -->
             <div class="smile_list_item_like" v-show="smileTitleIndex == 0">
@@ -144,7 +146,7 @@
               <div class="smile_list_item_content" v-for="(item, index) in userEmojiData" :key="index">
                 <div class="mile_list_item_container">
                   <img @click="selectEmojiImg(item.user_emoji_img)" :src="item.user_emoji_img + '?x-oss-process=image/resize,l_100'" alt="" />
-                  <div class="del_smile_list_item">删除</div>
+                  <div @click="delete_emoji_img(item.id, item.user_emoji_img, index)" class="del_smile_list_item">删除</div>
                 </div>
               </div>
             </div>
@@ -209,11 +211,14 @@
           </div>
         </div>
         <!-- 点击图片遮罩层 -->
-        <nut-overlay v-model:visible="showBigImgFlag">
+        <!-- <nut-overlay v-model:visible="showBigImgFlag">
           <div class="overlay-body">
             <img class="overlay-content" :src="showBigImgUrl" alt="" />
           </div>
-        </nut-overlay>
+        </nut-overlay> -->
+
+        <!-- 图片预览区域 -->
+        <nut-image-preview :show-index="false" :show="showBigImgFlag" :images="[{ src: showBigImgUrl }]" @close="hideBigImg" />
       </div>
       <!--  私聊  底部栏 -->
       <div class="chat_all_bottom" ref="chat_all_bottom">
@@ -272,7 +277,7 @@
             <span @click="smile_title_index(6)" :class="smileTitleIndex == 6 ? 'checked_tool_smile_title' : ''">🚐</span>
             <span @click="smile_title_index(7)" :class="smileTitleIndex == 7 ? 'checked_tool_smile_title' : ''">🎁</span>
           </div>
-          <!-- 表情列表 -->
+          <!-- 私聊 表情列表 -->
           <div class="chat_bottom_tool_smile_list">
             <!-- 渲染表情 -->
             <div class="smile_list_item_like" v-show="smileTitleIndex == 0">
@@ -283,7 +288,7 @@
               <div class="smile_list_item_content" v-for="(item, index) in userEmojiData" :key="index">
                 <div class="mile_list_item_container">
                   <img @click="p_selectEmojiImg(item.user_emoji_img)" :src="item.user_emoji_img + '?x-oss-process=image/resize,l_100'" alt="" />
-                  <div class="del_smile_list_item">删除</div>
+                  <div @click="delete_emoji_img(item.id, item.user_emoji_img, index)" class="del_smile_list_item">删除</div>
                 </div>
               </div>
             </div>
@@ -326,12 +331,12 @@ const store = useCounterStore(); // 可以在组件中的任意位置访问 `sto
 const { userInfo, unReadMessages_p, messages_p, onlineUser_p, unprivateMessages_p, private_messages_p } = storeToRefs(store); // 使用 storeToRefs 解构 store 中的响应式属性
 
 import { CONFIG } from "../config"; // 引入配置文件
-import { getOnlineUser, addOnlineUser, deleteOnlineUser, addUserEmoji, getUserEmoji } from "../api/allApi"; // 引入所有 API
+import { getOnlineUser, addOnlineUser, deleteOnlineUser, addUserEmoji, getUserEmoji, deleteUserEmoji } from "../api/allApi"; // 引入所有 API
 // 导入dayjs
 import dayjs from "dayjs";
-import { uploadFile } from "../utils/oss";
+import { uploadFile, deleteFile } from "../utils/oss";
 import emojiCategories from "../utils/emoji"; // 引入表情工具函数
-import { ActionSheet } from "@nutui/nutui";
+import { showToast } from "@nutui/nutui";
 
 const ws = ref(null); // websocket
 const username = ref(""); // 用户名
@@ -371,15 +376,39 @@ const touch = ref({ x: 0, y: 0, moved: false }); // 触摸事件相关数据
 const showBigImgFlag = ref(false); // 是否显示大图
 const showBigImgUrl = ref(""); // 大图 URL
 
-const private_emoji_img = ref(null); // 长按目标元素
-const emoji_img = ref(null); // 长按目标元素
-
 // *************************************************************************************************
+
+// 删除表情包图片
+async function delete_emoji_img(id, url, index) {
+  const path = url.split(".com/")[1].split("?")[0];
+  // console.log("删除表情包图片", id, path);
+
+  try {
+    await deleteFile(path);
+    // console.log("OSS上的表情包图片已删除");
+
+    const res = await deleteUserEmoji(id);
+    if (res.code === 200) {
+      // 删除成功后从 userEmojiData 中移除对应的表情
+      userEmojiData.value = userEmojiData.value.filter((item) => item.id !== id);
+      showToast.success("表情包图片已删除");
+    } else {
+      console.error("删除表情包图片失败", res);
+    }
+  } catch (error) {
+    // console.error("删除OSS上的表情包图片失败", error);
+    showToast.error("删除OSS图片失败");
+  }
+}
 
 // 点击图片显示大图
 function showBigImg(url) {
   showBigImgUrl.value = url; // 设置大图 URL
   showBigImgFlag.value = true; // 显示大图弹出层
+}
+
+function hideBigImg() {
+  showBigImgFlag.value = false; // 隐藏大图弹出层
 }
 
 function onPopupTouchStart(e) {
@@ -671,7 +700,7 @@ function connect() {
         user_img: data.user_img,
         msg_type: data.msg_type, // 消息类型
       });
-      privateMessageText.value = ""; // 清空私聊输入框
+      // privateMessageText.value = ""; // 清空私聊输入框
 
       // console.log("私聊消息列表", private_messages_p.value);
       setTimeout(() => {
