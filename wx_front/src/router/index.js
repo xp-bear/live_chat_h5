@@ -40,6 +40,11 @@ const routes = [
     component: () => import("@/views/Register.vue"),
     name: "Register",
   },
+  {
+    path: "/test",
+    component: () => import("@/views/Test.vue"),
+    name: "Test",
+  },
 ];
 
 const router = createRouter({
@@ -78,7 +83,7 @@ router.beforeEach((to, from, next) => {
   // from: 当前导航正要离开的路由
   // next: 必须调用此方法来resolve这个钩子
 
-  if (to.path !== "/login" && to.path !== "/register" && !isLoggedIn()) {
+  if (to.path !== "/test" && to.path !== "/login" && to.path !== "/register" && !isLoggedIn()) {
     next("/login"); // 如果用户没有登录，跳转到登录页面
   } else {
     next(); // 放行，继续导航

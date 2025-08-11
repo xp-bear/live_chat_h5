@@ -65,9 +65,10 @@ onMounted(() => {
   // 页面加载时，设置定时器每3秒切换一次动画
   timer.value = setInterval(() => {
     let lg_btn = document.querySelector(".lg_btn");
-    // 添加动画效果
-    lg_btn.style = "transition all 0.3s ease-in-out;";
     if (lg_btn) {
+      // 添加动画效果
+      lg_btn.style = "transition all 0.3s ease-in-out;";
+
       lg_btn.classList.add("animate__tada");
       setTimeout(() => {
         lg_btn.classList.remove("animate__tada");
@@ -174,7 +175,7 @@ const submitLogin = () => {
   z-index: 889;
   font-family: "pingfang";
 
-  background: url("../assets/imgs/bg.gif") no-repeat center center;
+  /* background: url("../assets/imgs/bg.gif") no-repeat center center; */
   background-size: cover;
 
   background-color: #fff;
@@ -251,8 +252,8 @@ const submitLogin = () => {
     align-items: center;
     height: 48.8vw;
     img {
-      width: 22.6667vw;
-      height: 21.3333vw;
+      width: 80%;
+      /* height: 21.3333vw; */
     }
   }
   .lg_change {
