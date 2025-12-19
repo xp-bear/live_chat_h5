@@ -18,7 +18,7 @@
                 全员群({{ onlineUser_p.length + 1 }})
                 <span class="qunliao_list_info_txt_time"> {{ formatTime(messages_p[messages_p.length - 1]?.create_time) }} </span>
               </span>
-              <span class="ellipsis"> {{ messages_p[messages_p.length - 1]?.text || "暂无新消息" }} </span>
+              <span class="ellipsis"> {{ format_last_message_text(messages_p[messages_p.length - 1]) }} </span>
             </div>
           </div>
           <div class="qunliao_list_message" v-show="unReadMessages_p.length > 0">{{ unReadMessages_p.length }}</div>
@@ -30,10 +30,14 @@
             <img :src="user.user_img" alt="" />
             <div class="qunliao_list_info_txt">
               <span>
+                <i class="chat_all_top_dot"></i>
                 {{ user.user_people }}
+
                 <span class="qunliao_list_info_txt_time"> {{ formatTime(user?.create_time) }} </span>
               </span>
-              <span><i class="chat_all_top_dot"></i>在线</span>
+              <span>
+                <span class="ellipsis qunliao_list_info_txt_time"> {{ format_last_message_text(private_messages_p[private_messages_p.length - 1]) }} </span>
+              </span>
             </div>
           </div>
           <div class="private_qunliao_list_message" v-for="(item, index) in private_messages_p" :key="item.username">
@@ -145,7 +149,7 @@
               </div>
               <div class="smile_list_item_content" v-for="(item, index) in userEmojiData" :key="index">
                 <div class="mile_list_item_container">
-                  <img @click="selectEmojiImg(item.user_emoji_img)" :src="item.user_emoji_img + '?x-oss-process=image/resize,l_100'" alt="" />
+                  <img @click="selectEmojiImg(item.user_emoji_img)" :src="emoji_display_fn(item.user_emoji_img)" alt="" />
                   <div @click="delete_emoji_img(item.id, item.user_emoji_img, index)" class="del_smile_list_item">删除</div>
                 </div>
               </div>
@@ -287,7 +291,7 @@
               </div>
               <div class="smile_list_item_content" v-for="(item, index) in userEmojiData" :key="index">
                 <div class="mile_list_item_container">
-                  <img @click="p_selectEmojiImg(item.user_emoji_img)" :src="item.user_emoji_img + '?x-oss-process=image/resize,l_100'" alt="" />
+                  <img @click="p_selectEmojiImg(item.user_emoji_img)" :src="emoji_display_fn(item.user_emoji_img)" alt="" />
                   <div @click="delete_emoji_img(item.id, item.user_emoji_img, index)" class="del_smile_list_item">删除</div>
                 </div>
               </div>
@@ -378,6 +382,20 @@ const showBigImgUrl = ref(""); // 大图 URL
 
 // *************************************************************************************************
 
+// 格式化最后一条消息文本
+function format_last_message_text(message) {
+  if (!message || !message.msg_type) {
+    return "暂无新消息";
+  }
+  if (message.msg_type === "text") {
+    return message.text || "暂无新消息";
+  } else if (message.msg_type === "image") {
+    return "[图片]";
+  } else {
+    return "未知消息类型";
+  }
+}
+
 // 删除表情包图片
 async function delete_emoji_img(id, url, index) {
   const path = url.split(".com/")[1].split("?")[0];
@@ -453,6 +471,15 @@ function selectEmojiImg(url) {
   setTimeout(() => {
     chat_all_content.value.scrollTop = chat_all_content.value.scrollHeight;
   }, 100);
+}
+
+// 私聊 表情包显示
+function emoji_display_fn(url) {
+  if (url.split(".").pop() != "jpg" && url.split(".").pop() != "png") {
+    return url;
+  }
+
+  return url + "?x-oss-process=image/resize,l_100";
 }
 
 // 私聊 点击表情包发送
@@ -591,17 +618,17 @@ onMounted(() => {
   connect();
 
   // 未读消息合并到 messages_p 中
-  if (unReadMessages_p.value.length > 0) {
-    unReadMessages_p.value.forEach((item) => {
-      messages_p.value.push({
-        text: item.message,
-        isMine: item.from === username.value,
-        username: item.from,
-        create_time: item.create_time,
-        user_img: item.user_img,
-      });
-    });
-  }
+  // if (unReadMessages_p.value.length > 0) {
+  //   unReadMessages_p.value.forEach((item) => {
+  //     messages_p.value.push({
+  //       text: item.message,
+  //       isMine: item.from === username.value,
+  //       username: item.from,
+  //       create_time: item.create_time,
+  //       user_img: item.user_img,
+  //     });
+  //   });
+  // }
 
   // 本地获取在线用户列表
   getOnlineUser().then((res) => {
@@ -672,16 +699,36 @@ function connect() {
             console.error("播放音频失败:", error);
           });
         }
-      } else if (data.type === "private" && !privateChatAllPopupState.value) {
-        // 如果私聊弹出层没有打开，则将消息添加到未读私聊消息列表
-        unprivateMessages_p.value.push(data);
+      } else if (data.type === "private") {
+        // 私聊弹窗 打开了
+        if (privateChatAllPopupState.value) {
+          console.log("打开了私聊弹窗");
 
-        // 播放消息提示音效
-        const messageAudio = document.getElementById("messageAudio");
-        if (messageAudio) {
-          messageAudio.play().catch((error) => {
-            console.error("播放音频失败:", error);
-          });
+          if (privateTo.value !== data.from) {
+            // 如果私聊弹出层没有打开，则将消息添加到未读私聊消息列表
+            unprivateMessages_p.value.push(data);
+
+            // 播放消息提示音效
+            const messageAudio = document.getElementById("messageAudio");
+            if (messageAudio) {
+              messageAudio.play().catch((error) => {
+                console.error("播放音频失败:", error);
+              });
+            }
+          }
+        } else {
+          console.log("没有打开私聊弹窗");
+
+          // 如果私聊弹出层没有打开，则将消息添加到未读私聊消息列表
+          unprivateMessages_p.value.push(data);
+
+          // 播放消息提示音效
+          const messageAudio = document.getElementById("messageAudio");
+          if (messageAudio) {
+            messageAudio.play().catch((error) => {
+              console.error("播放音频失败:", error);
+            });
+          }
         }
       }
     }
@@ -1468,6 +1515,7 @@ function show_private_count(user, item) {
         flex-direction: column;
         position: relative;
         width: 65vw;
+
         .chat_all_top_dot {
           display: inline-block;
           width: 2.1333vw;
@@ -1523,7 +1571,7 @@ function show_private_count(user, item) {
     }
     .private_qunliao_list_message {
       position: absolute;
-      right: 6.6667vw;
+      right: 0vw;
       width: 6.4vw;
       height: 6.4vw;
       text-align: center;

@@ -8,8 +8,8 @@ export const useCounterStore = defineStore("counter", {
     unReadMessages_p: [], // 未读消息列表
     messages_p: [], // 消息列表
     onlineUser_p: [], // 在线用户列表
-    private_messages_p: [], // 
-    unprivateMessages_p: [],
+    private_messages_p: [], // 私聊消息列表
+    unprivateMessages_p: [], // 未读私聊消息列表
   }),
   getters: {},
   actions: {
