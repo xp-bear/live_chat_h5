@@ -21,5 +21,7 @@ router.post("/add_user_emoji", userController.addUserEmoji);
 router.get("/get_user_emoji", userController.getUserEmoji);
 // 根据表情包图片ID删除表情包图片
 router.post("/delete_user_emoji", userController.deleteUserEmoji);
+// 更新用户头像
+router.post("/update_user_avatar", userController.updateUserAvatar);
 
 module.exports = router;

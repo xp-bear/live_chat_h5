@@ -95,6 +95,30 @@ const userController = {
       res.status(500).json({ error: "登录失败" });
     }
   },
+
+  // 更新用户头像
+  updateUserAvatar: async (req, res) => {
+    const { user_id, avatar_url } = req.body;
+    try {
+      // 1. 先获取用户名（用于更新聊天记录）
+      const users = await dbService.query("SELECT u_name FROM users WHERE id = ?", [user_id]);
+      if (!users || users.length === 0) {
+        return res.status(404).json({ code: 404, error: "用户不存在" });
+      }
+      const username = users[0].u_name;
+
+      // 2. 更新用户表中的头像
+      await dbService.query("UPDATE users SET u_avatar = ? WHERE id = ?", [avatar_url, user_id]);
+
+      // 3. 更新聊天记录表中该用户的所有消息头像
+      await dbService.query("UPDATE chat_messages SET user_img = ? WHERE from_user = ?", [avatar_url, username]);
+
+      res.json({ code: 200, message: "头像更新成功", data: { avatar_url } });
+    } catch (error) {
+      console.error("更新头像失败:", error);
+      res.status(500).json({ code: 500, error: "更新头像失败" });
+    }
+  },
 };
 
 module.exports = userController;

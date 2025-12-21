@@ -4,9 +4,9 @@ export const CONFIG = {
     WS_API: "ws://192.168.1.4:5200", // WebSocket 地址
   },
   oss: {
-    region: "oss-cn-wuhan-lr", // 你的OSS region
-    accessKeyId: "", // 替换为你的accessKeyId
-    accessKeySecret: "", // 替换为你的accessKeySecret
-    bucket: "xp-cdn-oss", // 替换为你的bucket名称
+    region: "your-oss-region", // 你的OSS region
+    accessKeyId: "your-access-key-id", // 替换为你的accessKeyId
+    accessKeySecret: "your-access-key-secret", // 替换为你的accessKeySecret
+    bucket: "your-bucket-name", // 替换为你的bucket名称
   },
 };

@@ -66,6 +66,50 @@ async function init() {
   `);
   console.log("✅ 表格 'user_emoji' 已创建或已存在");
 
+  // posts 表：保存动态
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS posts (
+      id INT NOT NULL AUTO_INCREMENT,
+      user_id INT DEFAULT NULL,
+      author VARCHAR(100) DEFAULT NULL,
+      content TEXT,
+      images JSON DEFAULT NULL,
+      likes INT DEFAULT 0,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `);
+  console.log("✅ 表格 'posts' 已创建或已存在");
+
+  // comments 表：保存帖子评论
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS comments (
+      id INT NOT NULL AUTO_INCREMENT,
+      post_id INT NOT NULL,
+      user_id INT DEFAULT NULL,
+      author VARCHAR(100) DEFAULT NULL,
+      text TEXT,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      INDEX (post_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `);
+  console.log("✅ 表格 'comments' 已创建或已存在");
+
+  // post_likes 表：记录用户对帖子的点赞，防止重复点赞
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS post_likes (
+      id INT NOT NULL AUTO_INCREMENT,
+      post_id INT NOT NULL,
+      user_id INT DEFAULT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY post_user_unique (post_id, user_id),
+      INDEX (post_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `);
+  console.log("✅ 表格 'post_likes' 已创建或已存在");
+
   process.exit(0);
 }
 

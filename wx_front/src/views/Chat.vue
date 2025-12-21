@@ -1,48 +1,71 @@
 <template>
   <div class="Chat">
+    <!-- 美化的头部区域 -->
+    <header class="chat-header">
+      <div class="header-bg-decoration"></div>
+      <div class="header-content">
+        <div class="header-left">
+          <div class="header-icon">💬</div>
+          <div class="header-text">
+            <div class="title">消息中心</div>
+            <div class="subtitle">与好友畅聊，分享快乐时光</div>
+          </div>
+        </div>
+        <div class="header-right">
+          <div class="online-count">{{ onlineUser_p.length + 1 }}人在线</div>
+        </div>
+      </div>
+    </header>
+
     <!-- 搜索框 -->
-    <div class="search_all">
-      <input class="search" placeholder="消息列表查询" />
+    <!-- <div class="search_all">
+      <input class="search" placeholder="搜索消息" />
       <img class="search_img" src="../assets/icons/fangdajing.svg" />
-    </div>
+    </div> -->
 
     <!-- tab 标签页切换 -->
-    <nut-tabs v-model="tabIndexValue" swipeable background="#ffffff" size="large">
+    <nut-tabs v-model="tabIndexValue" swipeable background="transparent" size="large" color="#667eea">
       <nut-tab-pane title="全部群聊" pane-key="1">
         <!-- 列表展示 -->
-        <div class="qunliao_list" @click="openCahtAllFn">
+        <div class="qunliao_list modern-card" @click="openCahtAllFn">
           <div class="qunliao_list_info">
-            <img src="https://xp-cdn-oss.oss-cn-wuhan-lr.aliyuncs.com/cookies/quanyuan.jpeg" alt="" />
+            <div class="avatar-wrapper">
+              <img src="https://xp-cdn-oss.oss-cn-wuhan-lr.aliyuncs.com/cookies/quanyuan.jpeg" alt="" />
+            </div>
             <div class="qunliao_list_info_txt">
-              <span>
-                全员群({{ onlineUser_p.length + 1 }})
-                <span class="qunliao_list_info_txt_time"> {{ formatTime(messages_p[messages_p.length - 1]?.create_time) }} </span>
-              </span>
-              <span class="ellipsis"> {{ format_last_message_text(messages_p[messages_p.length - 1]) }} </span>
+              <div class="chat-name-row">
+                <span class="chat-name">全员群({{ onlineUser_p.length + 1 }})</span>
+                <span class="qunliao_list_info_txt_time">{{ formatTime(messages_p[messages_p.length - 1]?.create_time) }}</span>
+              </div>
+              <span class="ellipsis chat-preview"> {{ format_last_message_text(messages_p[messages_p.length - 1]) }} </span>
             </div>
           </div>
-          <div class="qunliao_list_message" v-show="unReadMessages_p.length > 0">{{ unReadMessages_p.length }}</div>
+          <div class="qunliao_list_message badge-notification" v-show="unReadMessages_p.length > 0">{{ unReadMessages_p.length }}</div>
         </div>
       </nut-tab-pane>
       <nut-tab-pane title="个人单聊" pane-key="2">
-        <div @click="openPrivateChatPopup(user)" v-for="(user, index) in onlineUser_p" :key="user.user_people" class="qunliao_list private_qunliao_list">
+        <div v-if="allChatUsers.length === 0" style="padding: 20px; text-align: center; color: #999">暂无聊天对象</div>
+        <div @click="openPrivateChatPopup(user)" v-for="user in allChatUsers" :key="user.user_people" class="qunliao_list private_qunliao_list modern-card">
           <div class="qunliao_list_info">
-            <img :src="user.user_img" alt="" />
+            <div class="avatar-wrapper">
+              <img :src="user.user_img" alt="" />
+              <span v-if="user.online" class="online-indicator"></span>
+              <span v-else class="offline-indicator"></span>
+            </div>
             <div class="qunliao_list_info_txt">
-              <span>
-                <i class="chat_all_top_dot"></i>
-                {{ user.user_people }}
-
-                <span class="qunliao_list_info_txt_time"> {{ formatTime(user?.create_time) }} </span>
-              </span>
-              <span>
-                <span class="ellipsis qunliao_list_info_txt_time"> {{ format_last_message_text(private_messages_p[private_messages_p.length - 1]) }} </span>
-              </span>
+              <div class="chat-name-row">
+                <span class="chat-name">{{ user.user_people }}</span>
+                <span class="online-status-text" :class="{ 'status-online': user.online, 'status-offline': !user.online }">
+                  {{ user.online ? "在线" : "离线" }}
+                </span>
+                <span class="qunliao_list_info_txt_time">{{ formatTime(get_last_private_message(user)?.create_time || user?.create_time) }}</span>
+              </div>
+              <span class="ellipsis chat-preview"> {{ format_last_message_text(get_last_private_message(user)) }} </span>
             </div>
           </div>
-          <div class="private_qunliao_list_message" v-for="(item, index) in private_messages_p" :key="item.username">
-            <div class="private_qunliao_list_message2" v-show="show_private_count(user, item)">
-              {{ private_format_count(item.username) }}
+          <div class="private_qunliao_list_message" v-if="getUnreadCount(user.user_people) > 0">
+            <div class="private_qunliao_list_message2 badge-notification">
+              {{ getUnreadCount(user.user_people) }}
             </div>
           </div>
         </div>
@@ -54,28 +77,32 @@
     <!-- [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[群聊 弹出层]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]] -->
     <nut-popup v-model:visible="chatAllPopupState" position="right" :style="{ width: '100%', height: '100%' }">
       <!-- 顶部栏 -->
-      <div class="chat_all_top">
+      <div class="chat_all_top modern-header">
         <div class="chat_all_top_txt">
-          <RectLeft @click="closeChatAllPopup" width="4.8vw" height="4.8vw" />
-          <img src="https://xp-cdn-oss.oss-cn-wuhan-lr.aliyuncs.com/cookies/quanyuan.jpeg" alt="" />
+          <RectLeft @click="closeChatAllPopup" width="4.8vw" height="4.8vw" color="#fff" />
+          <div class="avatar-wrapper">
+            <img src="https://xp-cdn-oss.oss-cn-wuhan-lr.aliyuncs.com/cookies/quanyuan.jpeg" alt="" />
+          </div>
           <div class="chat_all_top_state">
             <span>全员群({{ onlineUser_p.length + 1 }})</span>
             <span><i class="chat_all_top_dot"></i>在线</span>
           </div>
         </div>
-        <MoreX width="4.8vw" height="4.8vw" />
+        <MoreX width="4.8vw" height="4.8vw" color="#fff" />
       </div>
       <!-- 内容区域 -->
-      <div @touchstart="onPopupTouchStart" @touchmove="onPopupTouchMove" @touchend="onPopupTouchEnd" @click="hideMenuFn()" class="chat_all_content" ref="chat_all_content">
+      <div @touchstart="onPopupTouchStart" @touchmove="onPopupTouchMove" @touchend="onPopupTouchEnd" @click="hideMenuFn()" class="chat_all_content modern-chat-bg" ref="chat_all_content">
         <!-- 别人发消息 -->
         <div class="chat_all_content_info" v-for="(message, index) in messages_p" :key="index" :class="{ 'my-message': message.isMine }">
           <!-- 时间显示 -->
-          <div class="chat_all_content_info_createtime">{{ message.create_time }}</div>
-          <img :src="message.user_img" alt="" />
+          <div class="chat_all_content_info_createtime">{{ formatChatTime(message.create_time) }}</div>
+          <div class="avatar-wrapper small">
+            <img :src="message.user_img" alt="" />
+          </div>
           <div class="chat_all_content_info_block">
             <div class="chat_all_content_info_time">{{ message.username }}</div>
-            <div v-show="message.msg_type == 'text'" class="chat_all_content_text">{{ message.text }}</div>
-            <img @click="showBigImg(message.text)" v-show="message.msg_type == 'image'" class="chat_all_content_img" :src="message.text" alt="" />
+            <div v-show="message.msg_type == 'text'" class="chat_all_content_text modern-bubble">{{ message.text }}</div>
+            <img @click="showBigImg(message.text)" v-show="message.msg_type == 'image'" class="chat_all_content_img modern-image" :src="message.text" alt="" />
           </div>
         </div>
         <!-- 点击图片遮罩层 -->
@@ -88,13 +115,13 @@
         <nut-image-preview :show-index="false" :show="showBigImgFlag" :images="[{ src: showBigImgUrl }]" @close="hideBigImg" />
       </div>
       <!-- 底部栏 -->
-      <div class="chat_all_bottom" ref="qun_chat_all_bottom">
+      <div class="chat_all_bottom modern-input-area" ref="qun_chat_all_bottom">
         <!-- 发送消息 -->
         <div class="chat_all_bottom_list">
-          <textarea id="textarea_message" v-model="messageText" type="text" placeholder="在此处键入" rows="1" @focus="activePlaceholderHeight(6.4)" @blur="cancelPlaceholderHeight(12.8)"></textarea>
+          <textarea id="textarea_message" v-model="messageText" type="text" placeholder="说点什么..." rows="1" @focus="activePlaceholderHeight(6.4)" @blur="cancelPlaceholderHeight(12.8)"></textarea>
           <img @click="showSmile" src="../assets/icons/smile.svg" class="chat_all_bottom_smile" alt="" />
-          <Check v-if="messageText.length > 0" @click="sendGroupMessage" width="7.2vw" height="7.2vw" :color="messageText.length > 0 ? '#3f51b5' : '#979797'" />
-          <CircleClose v-else @click="showMenuFn" width="7.2vw" height="7.2vw" style="transform: rotate(45deg)" :color="addBtnFlag ? '#3f51b5' : '#979797'" />
+          <Check v-if="messageText.length > 0" @click="sendGroupMessage" width="7.2vw" height="7.2vw" :color="messageText.length > 0 ? '#667eea' : '#979797'" />
+          <CircleClose v-else @click="showMenuFn" width="7.2vw" height="7.2vw" style="transform: rotate(45deg)" :color="addBtnFlag ? '#667eea' : '#979797'" />
         </div>
 
         <!-- 群聊 功能区域 -->
@@ -179,7 +206,7 @@
         </div>
 
         <!-- 弹出层里面 2未读新消息提示 -->
-        <div @click="cancelUnreadMessage" class="chat_all_unread_message animate__animated animate__pulse animate__infinite" v-show="unReadMessages_p.length > 0">
+        <div @click="cancelUnreadMessage" class="chat_all_unread_message modern-badge animate__animated animate__pulse animate__infinite" v-show="unReadMessages_p.length > 0">
           <DouArrowUp style="transform: rotate(180deg)" />
           &nbsp; {{ unReadMessages_p.length }} 条新消息
         </div>
@@ -189,29 +216,37 @@
     <!-- ///////////////////////////////私聊 弹出层///////////////////////////////////////////// -->
     <nut-popup v-model:visible="privateChatAllPopupState" position="right" :style="{ width: '100%', height: '100%' }">
       <!-- 顶部栏 -->
-      <div class="chat_all_top">
+      <div class="chat_all_top modern-header">
         <div class="chat_all_top_txt">
-          <RectLeft @click="closePrivateChatPopup" width="4.8vw" height="4.8vw" />
-          <img :src="private_user.user_img" alt="" />
+          <RectLeft @click="closePrivateChatPopup" width="4.8vw" height="4.8vw" color="#fff" />
+          <div class="avatar-wrapper">
+            <img :src="private_user.user_img" alt="" />
+            <span v-if="private_user.online" class="online-indicator"></span>
+            <span v-else class="offline-indicator"></span>
+          </div>
           <div class="chat_all_top_state">
             <span>{{ private_user.user_people }}</span>
-            <span><i class="chat_all_top_dot"></i>在线</span>
+            <span><i :class="private_user.online ? 'chat_all_top_dot' : 'chat_all_top_dot_offline'"></i>{{ private_user.online ? "在线" : "离线" }}</span>
           </div>
         </div>
-        <MoreX width="4.8vw" height="4.8vw" />
+        <MoreX width="4.8vw" height="4.8vw" color="#fff" />
       </div>
 
       <!-- 私聊内容区域 -->
-      <div @touchstart="onPopupTouchStart" @touchmove="onPopupTouchMove" @touchend="onPopupTouchEnd" @click="p_hideAddMenu()" class="chat_all_content" ref="private_chat_all_content">
+      <div @touchstart="onPopupTouchStart" @touchmove="onPopupTouchMove" @touchend="onPopupTouchEnd" @click="p_hideAddMenu()" class="chat_all_content modern-chat-bg" ref="private_chat_all_content">
         <!-- 私聊消息列表 -->
         <div class="chat_all_content_info" v-for="(message, index) in private_messages_p" :key="index" :class="{ 'my-message': message.isMine }">
-          <div v-show="message.to === private_user.user_people || message.username === private_user.user_people" class="chat_all_content_info_createtime">{{ message.create_time }}</div>
-          <img v-show="message.to === private_user.user_people || message.username === private_user.user_people" :src="message.user_img" alt="" />
+          <div v-show="message.to === private_user.user_people || message.username === private_user.user_people" class="chat_all_content_info_createtime">
+            {{ formatChatTime(message.create_time) }}
+          </div>
+          <div v-show="message.to === private_user.user_people || message.username === private_user.user_people" class="avatar-wrapper small">
+            <img :src="message.user_img" alt="" />
+          </div>
           <div v-show="message.to === private_user.user_people || message.username === private_user.user_people" class="chat_all_content_info_block">
             <div class="chat_all_content_info_time">{{ message.username }}</div>
             <!-- <div class="chat_all_content_text">{{ message.text }}</div> -->
-            <div v-show="message.msg_type == 'text'" class="chat_all_content_text">{{ message.text }}</div>
-            <img @click="showBigImg(message.text)" v-show="message.msg_type == 'image'" class="chat_all_content_img" :src="message.text" alt="" />
+            <div v-show="message.msg_type == 'text'" class="chat_all_content_text modern-bubble">{{ message.text }}</div>
+            <img @click="showBigImg(message.text)" v-show="message.msg_type == 'image'" class="chat_all_content_img modern-image" :src="message.text" alt="" />
           </div>
         </div>
         <!-- 点击图片遮罩层 -->
@@ -225,21 +260,21 @@
         <nut-image-preview :show-index="false" :show="showBigImgFlag" :images="[{ src: showBigImgUrl }]" @close="hideBigImg" />
       </div>
       <!--  私聊  底部栏 -->
-      <div class="chat_all_bottom" ref="chat_all_bottom">
+      <div class="chat_all_bottom modern-input-area" ref="chat_all_bottom">
         <!--私聊  发送消息 -->
         <div class="chat_all_bottom_list">
           <textarea
             id="private_textarea_message"
             v-model="privateMessageText"
             type="text"
-            placeholder="在此处键入"
+            placeholder="说点什么..."
             rows="1"
             @focus="p_activePlaceholderHeight(6.4)"
             @blur="p_cancelPlaceholderHeight(12.8)"
           ></textarea>
           <img @click="p_showSmile" src="../assets/icons/smile.svg" class="private_chat_all_bottom_smile chat_all_bottom_smile" alt="" />
-          <Check v-if="privateMessageText.length > 0" @click="sendPrivateMessage" width="7.2vw" height="7.2vw" :color="privateMessageText.length > 0 ? '#3f51b5' : '#979797'" />
-          <CircleClose v-else @click="p_showAddMenu" width="7.2vw" height="7.2vw" style="transform: rotate(45deg)" :color="addBtnFlag ? '#3f51b5' : '#979797'" />
+          <Check v-if="privateMessageText.length > 0" @click="sendPrivateMessage" width="7.2vw" height="7.2vw" :color="privateMessageText.length > 0 ? '#667eea' : '#979797'" />
+          <CircleClose v-else @click="p_showAddMenu" width="7.2vw" height="7.2vw" style="transform: rotate(45deg)" :color="addBtnFlag ? '#667eea' : '#979797'" />
         </div>
         <!--私聊 功能区域 -->
         <div v-show="addBtnFlag === true" class="chat_all_bottom_tool">
@@ -326,16 +361,18 @@
 
 <script setup>
 import { MoreX, RectLeft, Uploader, Check, DouArrowUp, CircleClose } from "@nutui/icons-vue";
-import { ref, onMounted, computed, createVNode } from "vue";
+import { ref, onMounted, onUnmounted, computed, createVNode, watch } from "vue";
 import "animate.css"; // 引入 Animate.css
+import { useRouter } from "vue-router"; // 引入路由
 // 引入 Pinia store
 import { useCounterStore } from "@/stores/counter";
 import { storeToRefs } from "pinia";
 const store = useCounterStore(); // 可以在组件中的任意位置访问 `store` 变量 ✨
 const { userInfo, unReadMessages_p, messages_p, onlineUser_p, unprivateMessages_p, private_messages_p } = storeToRefs(store); // 使用 storeToRefs 解构 store 中的响应式属性
+const router = useRouter(); // 路由实例
 
 import { CONFIG } from "../config"; // 引入配置文件
-import { getOnlineUser, addOnlineUser, deleteOnlineUser, addUserEmoji, getUserEmoji, deleteUserEmoji } from "../api/allApi"; // 引入所有 API
+import { getOnlineUser, addOnlineUser, deleteOnlineUser, addUserEmoji, getUserEmoji, deleteUserEmoji, getGroupMessagesAPI, getPrivateMessagesAPI } from "../api/allApi"; // 引入所有 API
 // 导入dayjs
 import dayjs from "dayjs";
 import { uploadFile, deleteFile } from "../utils/oss";
@@ -380,6 +417,74 @@ const touch = ref({ x: 0, y: 0, moved: false }); // 触摸事件相关数据
 const showBigImgFlag = ref(false); // 是否显示大图
 const showBigImgUrl = ref(""); // 大图 URL
 
+// 存储每个用户的最后一条私聊消息
+const userLastMessages = ref({}); // { username: message }
+
+// 在线状态映射表
+const onlineStatusMap = ref({}); // { username: boolean }
+
+// 所有聊天过的用户(包含在线和离线)
+const allChatUsers = computed(() => {
+  // 获取所有有私聊消息的用户
+  const chatUsernames = new Set();
+
+  // 从私聊消息中提取用户
+  private_messages_p.value.forEach((msg) => {
+    if (msg.username !== username.value) {
+      chatUsernames.add(msg.username);
+    }
+    if (msg.to && msg.to !== username.value) {
+      chatUsernames.add(msg.to);
+    }
+  });
+
+  // 从未读消息中提取用户
+  unprivateMessages_p.value.forEach((msg) => {
+    if (msg.from && msg.from !== username.value) {
+      chatUsernames.add(msg.from);
+    }
+  });
+
+  // 合并在线用户
+  const allUsers = [];
+  const processedUsers = new Set();
+
+  // 先添加在线用户
+  onlineUser_p.value.forEach((user) => {
+    if (!processedUsers.has(user.user_people)) {
+      allUsers.push({
+        ...user,
+        online: true,
+      });
+      processedUsers.add(user.user_people);
+      chatUsernames.delete(user.user_people);
+    }
+  });
+
+  // 再添加离线用户(有聊天记录但不在线的)
+  chatUsernames.forEach((userName) => {
+    if (!processedUsers.has(userName)) {
+      // 从最后的消息中获取用户头像
+      const lastMsg = userLastMessages.value[userName] || [...private_messages_p.value].reverse().find((msg) => msg.username === userName || msg.to === userName);
+
+      allUsers.push({
+        user_people: userName,
+        user_img: lastMsg?.user_img || userInfo.value.u_avatar,
+        create_time: lastMsg?.create_time || new Date().toISOString(),
+        online: false,
+      });
+      processedUsers.add(userName);
+    }
+  });
+
+  // 按最后消息时间排序
+  return allUsers.sort((a, b) => {
+    const timeA = get_last_private_message(a)?.create_time || a.create_time;
+    const timeB = get_last_private_message(b)?.create_time || b.create_time;
+    return new Date(timeB) - new Date(timeA);
+  });
+});
+
 // *************************************************************************************************
 
 // 格式化最后一条消息文本
@@ -394,6 +499,11 @@ function format_last_message_text(message) {
   } else {
     return "未知消息类型";
   }
+}
+
+// 获取指定用户的未读消息数量
+function getUnreadCount(userName) {
+  return unprivateMessages_p.value.filter((msg) => msg.from === userName).length;
 }
 
 // 删除表情包图片
@@ -612,8 +722,19 @@ function smile_title_index(index) {
 
 //  首次进入页面加载数据
 onMounted(() => {
+  // 重置滚动位置到顶部
+  window.scrollTo(0, 0);
+
+  // 禁止页面滚动
+  document.body.style.overflow = "hidden";
+  document.documentElement.style.overflow = "hidden";
+
   // 随机用户名
   username.value = userInfo.value.u_name;
+
+  // 加载群聊历史消息
+  loadGroupHistory();
+
   // 连接
   connect();
 
@@ -632,10 +753,14 @@ onMounted(() => {
 
   // 本地获取在线用户列表
   getOnlineUser().then((res) => {
-    // console.log("首次进入页面加载数据", res.data);
+    console.log("首次进入页面加载数据", res.data);
     if (res.code === 200) {
       // 排除自己,不可以和自己单聊
       onlineUser_p.value = res.data.filter((user) => user.user_people !== username.value);
+      console.log("过滤后的在线用户列表", onlineUser_p.value);
+
+      // 为每个在线用户加载最后一条私聊消息
+      loadAllUsersLastMessages();
     }
   });
 
@@ -646,7 +771,128 @@ onMounted(() => {
       // console.log("用户表情数据", userEmojiData.value);
     }
   });
+
+  // 监听浏览器返回按钮
+  window.addEventListener("popstate", handlePopState);
 });
+
+// 处理浏览器返回事件
+function handlePopState(event) {
+  // 检查是否有弹窗打开
+  if (showBigImgFlag.value) {
+    // 如果大图弹窗打开，关闭它
+    event.preventDefault();
+    hideBigImg();
+    history.pushState(null, "", location.href); // 保持在当前页面
+  } else if (chatAllPopupState.value) {
+    // 如果群聊弹窗打开，关闭它
+    event.preventDefault();
+    closeChatAllPopup();
+    history.pushState(null, "", location.href); // 保持在当前页面
+  } else if (privateChatAllPopupState.value) {
+    // 如果私聊弹窗打开，关闭它
+    event.preventDefault();
+    closePrivateChatPopup();
+    history.pushState(null, "", location.href); // 保持在当前页面
+  }
+  // 如果没有弹窗打开，则允许正常返回
+}
+
+// 监听弹窗状态变化，当弹窗打开时添加历史记录
+watch([chatAllPopupState, privateChatAllPopupState, showBigImgFlag], ([chatAll, privateChat, bigImg], [oldChatAll, oldPrivateChat, oldBigImg]) => {
+  // 如果任何弹窗从关闭变为打开，添加一个历史记录
+  if ((chatAll && !oldChatAll) || (privateChat && !oldPrivateChat) || (bigImg && !oldBigImg)) {
+    history.pushState(null, "", location.href);
+  }
+});
+
+// 组件卸载时恢复页面滚动
+onUnmounted(() => {
+  document.body.style.overflow = "";
+  document.documentElement.style.overflow = "";
+  // 移除返回按钮监听
+  window.removeEventListener("popstate", handlePopState);
+});
+
+// 函数 加载群聊历史消息
+async function loadGroupHistory() {
+  try {
+    const res = await getGroupMessagesAPI(100, 0);
+    if (res.success) {
+      console.log("加载群聊历史消息", res.data);
+      // 将历史消息转换为前端格式
+      const historyMessages = res.data.map((msg) => ({
+        msg_type: msg.msg_type,
+        text: msg.message,
+        isMine: msg.from_user === username.value,
+        username: msg.from_user,
+        create_time: msg.create_time,
+        user_img: msg.user_img,
+      }));
+      // 将历史消息添加到消息列表（在前面）
+      messages_p.value = [...historyMessages];
+      console.log("群聊历史消息加载完成", messages_p.value);
+    }
+  } catch (error) {
+    console.error("加载群聊历史消息失败:", error);
+  }
+}
+
+// 函数 加载私聊历史消息
+async function loadPrivateHistory(otherUser) {
+  try {
+    const res = await getPrivateMessagesAPI(username.value, otherUser, 100, 0);
+    if (res.success) {
+      console.log("加载私聊历史消息", res.data);
+      // 将历史消息转换为前端格式
+      const historyMessages = res.data.map((msg) => ({
+        msg_type: msg.msg_type,
+        text: msg.message,
+        isMine: msg.from_user === username.value,
+        to: msg.to_user,
+        username: msg.from_user,
+        create_time: msg.create_time,
+        user_img: msg.user_img,
+      }));
+      // 清空当前私聊消息列表，替换为历史消息
+      private_messages_p.value = [...historyMessages];
+      console.log("私聊历史消息加载完成", private_messages_p.value);
+
+      // 滚动到底部
+      setTimeout(() => {
+        if (private_chat_all_content.value) {
+          private_chat_all_content.value.scrollTop = private_chat_all_content.value.scrollHeight;
+        }
+      }, 100);
+    }
+  } catch (error) {
+    console.error("加载私聊历史消息失败:", error);
+  }
+}
+
+// 函数 为所有在线用户加载最后一条消息
+async function loadAllUsersLastMessages() {
+  for (const user of onlineUser_p.value) {
+    try {
+      const res = await getPrivateMessagesAPI(username.value, user.user_people, 1, 0);
+      if (res.success && res.data.length > 0) {
+        const lastMsg = res.data[0];
+        userLastMessages.value[user.user_people] = {
+          msg_type: lastMsg.msg_type,
+          text: lastMsg.message,
+          isMine: lastMsg.from_user === username.value,
+          to: lastMsg.to_user,
+          username: lastMsg.from_user,
+          create_time: lastMsg.create_time,
+          user_img: lastMsg.user_img,
+        };
+      }
+    } catch (error) {
+      console.error(`加载用户 ${user.user_people} 的最后一条消息失败:`, error);
+    }
+  }
+}
+
 // 函数 websockit连接
 function connect() {
   if (!username.value) {
@@ -667,24 +913,38 @@ function connect() {
     const data = JSON.parse(event.data);
     console.log("h5收到消息", data);
 
+    // 处理在线用户列表
+    if (data.type === "online_users") {
+      // 服务器返回的当前在线用户列表
+      data.users.forEach((user) => {
+        const exists = onlineUser_p.value.some((u) => u.user_people === user.user_people);
+        if (!exists) {
+          onlineUser_p.value.push(user);
+        }
+        onlineStatusMap.value[user.user_people] = true;
+      });
+      return;
+    }
+
     // 如果是在线用户列表更新
     if (data.type === "info") {
       if (data.user_state === "join") {
         const exists = onlineUser_p.value.some((user) => user.user_people === data.user_people);
-        if (!exists) {
-          // 添加到数据库
-          chat_updateOnlineUser(data);
+        if (!exists && data.user_people !== username.value) {
+          onlineUser_p.value.push({
+            user_people: data.user_people,
+            user_img: data.user_img,
+            create_time: data.create_time,
+            online: true,
+          });
         }
+        onlineStatusMap.value[data.user_people] = true;
       } else if (data.user_state === "close") {
-        // 用户退出
+        // 用户退出 - 更新在线状态但不从列表中删除
         onlineUser_p.value = onlineUser_p.value.filter((user) => user.user_people !== data.user_people);
-        // 从数据库删除用户
-        deleteOnlineUser({ user_people: data.user_people }).then((res) => {
-          console.log("删除在线用户", res);
-        });
+        onlineStatusMap.value[data.user_people] = false;
       }
-      // 排除自己,不可以和自己单聊
-      onlineUser_p.value = onlineUser_p.value.filter((user) => user.user_people !== username.value);
+      return;
     }
 
     // 先判断聊天弹出层是否打开
@@ -702,8 +962,6 @@ function connect() {
       } else if (data.type === "private") {
         // 私聊弹窗 打开了
         if (privateChatAllPopupState.value) {
-          console.log("打开了私聊弹窗");
-
           if (privateTo.value !== data.from) {
             // 如果私聊弹出层没有打开，则将消息添加到未读私聊消息列表
             unprivateMessages_p.value.push(data);
@@ -717,8 +975,6 @@ function connect() {
             }
           }
         } else {
-          console.log("没有打开私聊弹窗");
-
           // 如果私聊弹出层没有打开，则将消息添加到未读私聊消息列表
           unprivateMessages_p.value.push(data);
 
@@ -735,21 +991,21 @@ function connect() {
 
     // 私聊消息
     if (data.type === "private") {
-      // 私聊消息
-      // console.log(data.to, data.from);
-      // 如果是私聊消息且是发给自己的
-      private_messages_p.value.push({
+      const newMessage = {
         text: data.message,
         to: data.to,
         isMine: data.from === username.value,
         username: data.from,
         create_time: data.create_time,
         user_img: data.user_img,
-        msg_type: data.msg_type, // 消息类型
-      });
-      // privateMessageText.value = ""; // 清空私聊输入框
+        msg_type: data.msg_type,
+      };
 
-      // console.log("私聊消息列表", private_messages_p.value);
+      private_messages_p.value.push(newMessage);
+
+      // 更新发送者的最后一条消息缓存
+      userLastMessages.value[data.from] = newMessage;
+
       setTimeout(() => {
         // 私聊弹出层打开时，滚动到底部
         if (privateChatAllPopupState.value) {
@@ -759,10 +1015,8 @@ function connect() {
     }
     // 群聊消息
     if (data.type === "group") {
-      // 群消息和私聊消息
       messages_p.value.push({ msg_type: data.msg_type, text: `${data.message}`, isMine: data.from === username.value, username: data.from, create_time: data.create_time, user_img: data.user_img });
 
-      // chat_all_content //监测下方是否有最新消息,不应该直接滚动到最底部
       setTimeout(() => {
         // 如果群聊弹出层是打开状态，则滚动到最底部
         if (chatAllPopupState.value) {
@@ -770,6 +1024,15 @@ function connect() {
         }
       }, 100);
     }
+  };
+
+  ws.value.onerror = (error) => {
+    console.error("WebSocket错误:", error);
+  };
+
+  ws.value.onclose = () => {
+    console.log("WebSocket连接关闭");
+    connected.value = false;
   };
 }
 
@@ -825,6 +1088,18 @@ const sendPrivateMessage = () => {
       user_img: userInfo.value.u_avatar,
       msg_type: "text", // 消息类型
     });
+
+    // 更新该用户的最后一条消息缓存
+    userLastMessages.value[privateTo.value] = {
+      text: privateMessageText.value,
+      isMine: true,
+      to: privateTo.value,
+      username: username.value,
+      create_time: dayjs().format("YYYY-MM-DD HH:mm:ss"),
+      user_img: userInfo.value.u_avatar,
+      msg_type: "text",
+    };
+
     privateMessageText.value = "";
     p_hideAddMenu(); // 发送消息后隐藏菜单
   }
@@ -1017,7 +1292,7 @@ function p_cancelPlaceholderHeight(value) {
 
 // 函数 根据传入的时间 设置成今天 • 10:30 这种格式 23:4 设置成23:04
 function formatTime(date) {
-  if (!date) return ""; // 如果没有日期，返回空字符串
+  if (!date) return "";
   const now = new Date();
   const messageDate = new Date(date);
   if (now.toDateString() === messageDate.toDateString()) {
@@ -1028,6 +1303,19 @@ function formatTime(date) {
       .toString()
       .padStart(2, "0")}`;
   }
+}
+
+// 函数 格式化聊天弹出层中的时间 - 年月日时分格式
+function formatChatTime(date) {
+  if (!date) return "";
+  const messageDate = new Date(date);
+  const year = messageDate.getFullYear();
+  const month = (messageDate.getMonth() + 1).toString().padStart(2, "0");
+  const day = messageDate.getDate().toString().padStart(2, "0");
+  const hours = messageDate.getHours().toString().padStart(2, "0");
+  const minutes = messageDate.getMinutes().toString().padStart(2, "0");
+
+  return `${year}年${month}月${day}日 ${hours}:${minutes}`;
 }
 // 函数 取消未读消息
 function cancelUnreadMessage() {
@@ -1046,96 +1334,379 @@ function openPrivateChatPopup(user) {
   privateChatAllPopupState.value = true;
   privateTo.value = user.user_people; // 设置私聊对象
   private_user.value = user; // 设置私聊对象用户
-  // console.log("打开私聊弹出层", private_user.value);
 
-  // 删除  unprivateMessages_p.value中 user.user_people 的所有消息
+  // 加载私聊历史消息
+  loadPrivateHistory(user.user_people);
+
+  // 清除该用户的未读消息
   unprivateMessages_p.value = unprivateMessages_p.value.filter((item) => item.from !== user.user_people);
+
   // 私聊消息列表滚动到最底部
   setTimeout(() => {
-    private_chat_all_content.value.scrollTop = private_chat_all_content.value.scrollHeight;
+    if (private_chat_all_content.value) {
+      private_chat_all_content.value.scrollTop = private_chat_all_content.value.scrollHeight;
+    }
   }, 100);
 }
 // 函数 关闭私聊弹出层
 function closePrivateChatPopup() {
+  // 在关闭前，保存当前对话的最后一条消息到缓存
+  if (privateTo.value && private_messages_p.value.length > 0) {
+    const userMessages = private_messages_p.value.filter((msg) => {
+      return msg.username === privateTo.value || msg.to === privateTo.value;
+    });
+
+    if (userMessages.length > 0) {
+      userLastMessages.value[privateTo.value] = userMessages[userMessages.length - 1];
+    }
+  }
+
   privateChatAllPopupState.value = false;
 }
 
-// 函数 私聊消息条数
-function private_format_count(username) {
-  let data = unprivateMessages_p.value.filter((item) => {
-    return item.from === username;
+// 函数 获取与特定用户的最后一条私聊消息
+function get_last_private_message(user) {
+  // 优先从当前私聊消息列表中查找
+  const userMessages = private_messages_p.value.filter((msg) => {
+    return msg.username === user.user_people || msg.to === user.user_people;
   });
-  // 计算未读私聊消息数量
-  return data.length;
-}
-// 函数 更新在线用户列表
-function chat_updateOnlineUser(user) {
-  // 查询数据库是否存在用户,不存在就添加
-  getOnlineUser().then((res) => {
-    // console.log("添加数据库用户先查询", res.data);
-    if (res.code === 200) {
-      // 检查当前添加的用户是不是自己登录的这个账号 是就添加  u.user_people === username.value 相同元素条数没有添加 >1不添加
-      const exists = res.data.filter((u) => u.user_people === username.value);
-      if (exists.length === 0) {
-        // 添加到数据库
-        addOnlineUser(user).then((res) => {
-          // console.log("添加在线用户", res.data);
-          // 排除自己,不可以和自己单聊
-          if (user.user_people !== username.value) {
-            onlineUser_p.value.push(user); // 更新在线用户列表
-          }
-        });
-      } else {
-        setTimeout(() => {
-          // 查询数据库存在用户更新onlineUser_p
-          getOnlineUser().then((ress) => {
-            if (ress.code === 200) {
-              console.log("用户已存在，不添加", ress.data);
-              // 排除自己,不可以和自己单聊
-              onlineUser_p.value = ress.data.filter((user) => user.user_people !== username.value);
-            }
-          });
-        }, 2000);
-      }
-    }
-  });
-}
 
-// 函数  v-show 显示私聊消息数量
-function show_private_count(user, item) {
-  let data = unprivateMessages_p.value.filter((res) => res.user_people === user.username);
-  data = data.filter((res) => res.from === item.username);
-
-  if (unprivateMessages_p.value.length > 0 && user.user_people === item.username && data.length > 0) {
-    return true;
-  } else {
-    return false;
+  if (userMessages.length > 0) {
+    return userMessages[userMessages.length - 1];
   }
+
+  // 如果当前列表没有，从缓存中获取历史记录
+  if (userLastMessages.value[user.user_people]) {
+    return userLastMessages.value[user.user_people];
+  }
+
+  return null;
 }
 </script>
 
 <style lang="scss" scoped>
 .Chat {
+  height: 100vh;
+  overflow: hidden;
+  background: linear-gradient(to bottom, #f8f9ff 0%, #ffffff 100%);
+  font-family: "pingfang", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  /* Tab Pane 背景设置 - 与主题保持一致 */
+  :deep(.nut-tab-pane) {
+    background: transparent !important;
+  }
+
+  /* 头部样式 - 与首页一致 */
+  .chat-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    padding: 20px 16px;
+    border-radius: 0 0 24px 24px;
+    margin: 0 0 16px 0;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+  }
+
+  .header-bg-decoration {
+    position: absolute;
+    top: -50px;
+    right: -50px;
+    width: 200px;
+    height: 200px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .header-bg-decoration::before {
+    content: "";
+    position: absolute;
+    bottom: -80px;
+    left: -100px;
+    width: 180px;
+    height: 180px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 50%;
+    animation: float 8s ease-in-out infinite reverse;
+  }
+
+  .header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+  }
+
+  .header-icon {
+    font-size: 32px;
+    animation: sparkle 3s ease-in-out infinite;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+  }
+
+  .header-text {
+    flex: 1;
+  }
+
+  .title {
+    font-size: 5.6vw;
+    font-weight: 700;
+    margin-bottom: 4px;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .subtitle {
+    font-size: 3.2vw;
+    opacity: 0.9;
+    font-weight: 400;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+  }
+
+  .online-count {
+    font-size: 3.2vw;
+    background: rgba(255, 255, 255, 0.2);
+    padding: 4px 12px;
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+  }
+
+  @keyframes sparkle {
+    0%,
+    100% {
+      transform: scale(1) rotate(0deg);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.1) rotate(10deg);
+      opacity: 0.8;
+    }
+  }
+
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0) translateX(0);
+    }
+    50% {
+      transform: translateY(-20px) translateX(10px);
+    }
+  }
+
   :deep(.nut-tabs__content) {
     height: calc(100vh - 21.3333vw - 18.9333vw);
+    background: transparent;
+    overflow: visible;
+  }
+
+  :deep(.nut-tabs__titles) {
+    background: transparent;
+    padding: 0 16px;
+  }
+
+  :deep(.nut-tabs__titles-item) {
+    font-weight: 600;
+  }
+
+  :deep(.nut-tabs__content__pane) {
+    overflow-y: auto;
+    height: 100%;
+    padding-bottom: 20px;
   }
   .ellipsis {
-    overflow: hidden; /* 隐藏溢出内容 */
-    white-space: nowrap; /* 禁止文本换行 */
-    text-overflow: ellipsis; /* 超出部分显示省略号 */
-    width: 100%; /* 必须设置宽度（或max-width）*/
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    vertical-align: middle;
   }
+
+  /* 搜索框样式 */
+  .search_all {
+    position: relative;
+    margin: 0 12px 16px;
+
+    .search {
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      width: 100%;
+      height: 10.9333vw;
+      border-radius: 12px;
+      border: none;
+      background: #fff;
+      box-shadow: 0 2px 12px rgba(102, 126, 234, 0.1);
+      outline: none;
+      padding-left: 12.8vw;
+      font-size: 3.7333vw;
+      transition: all 0.3s ease;
+
+      &::placeholder {
+        color: rgba(153, 153, 153, 1);
+        font-size: 3.7333vw;
+      }
+
+      &:focus {
+        box-shadow: 0 4px 16px rgba(102, 126, 234, 0.2);
+        transform: translateY(-1px);
+      }
+    }
+
+    .search_img {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      left: 4vw;
+      width: 4.4453vw;
+      height: 4.4453vw;
+      opacity: 0.5;
+    }
+  }
+
+  /* 现代化卡片样式 */
+  .modern-card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(102, 126, 234, 0.08);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    margin-bottom: 12px;
+
+    &:hover {
+      box-shadow: 0 4px 20px rgba(102, 126, 234, 0.15);
+      transform: translateY(-2px);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+  }
+
+  /* 头像包装器 */
+  .avatar-wrapper {
+    position: relative;
+    width: 12.8vw;
+    height: 12.8vw;
+    margin-left: 4.2667vw;
+    margin-right: 3.2vw;
+
+    &.small {
+      width: 8.5333vw;
+      height: 8.5333vw;
+      margin-right: 2.1333vw;
+    }
+
+    img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid #fff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .online-indicator {
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      width: 3vw;
+      height: 3vw;
+      background: linear-gradient(135deg, #43e97b, #38f9d7);
+      border: 2px solid #fff;
+      border-radius: 50%;
+      animation: pulse-indicator 2s ease-in-out infinite;
+    }
+
+    .offline-indicator {
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      width: 3vw;
+      height: 3vw;
+      background: #ccc;
+      border: 2px solid #fff;
+      border-radius: 50%;
+    }
+  }
+
+  @keyframes pulse-indicator {
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 rgba(67, 233, 123, 0.7);
+    }
+    50% {
+      box-shadow: 0 0 0 4px rgba(67, 233, 123, 0);
+    }
+  }
+
+  /* 徽章通知 */
+  .badge-notification {
+    background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+    color: #fff;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(238, 90, 111, 0.4);
+    animation: badge-pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes badge-pulse {
+    0%,
+    100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.05);
+    }
+  }
+
+  /* 聊天名称和预览文本 */
+  .chat-name-row {
+    display: flex;
+    justify-content: flex-start;
+    align-items: baseline;
+    width: 100%;
+    margin-bottom: 0.8vw;
+    gap: 1.3333vw;
+  }
+
+  .chat-name {
+    font-size: 3.7333vw;
+    font-weight: 600;
+    color: #2c3e50;
+  }
+
+  .chat-preview {
+    font-size: 2.9333vw;
+    font-weight: 400;
+    color: #8c8c8c;
+    line-height: 1.4;
+  }
+  /* 聊天内容区域 */
   .chat_all_content {
     height: calc(100vh - 21.3333vw - 14.9333vw);
     overflow: auto;
     padding: 3.2vw 6.4vw 0;
     box-sizing: border-box;
     white-space: pre-wrap;
+
+    &.modern-chat-bg {
+      background: linear-gradient(to bottom, #fafbff 0%, #ffffff 100%);
+    }
     .chat_all_content_noitfy {
       height: 5.3333vw;
       font-size: 4vw;
       font-weight: 400;
-      letter-spacing: 0px;
+      letter-spacing: 0;
       line-height: 5.3333vw;
       color: rgba(175, 175, 175, 1);
       text-align: center;
@@ -1148,437 +1719,533 @@ function show_private_count(user, item) {
       margin-bottom: 3.2vw;
       position: relative;
       padding-top: 6.4vw;
+
       .chat_all_content_img {
         width: 26.6667vw;
         height: 26.6667vw;
-        border-radius: 0%;
-        object-fit: contain;
-        object-position: left center;
-      }
-      .private_chat_content_info_block {
-      }
-      .chat_all_content_info_createtime {
-        position: absolute;
-        top: 0;
-        font-size: 2.6667vw;
-        left: 50%;
-        transform: translateX(-50%);
-        color: rgba(175, 175, 175, 1);
-      }
-      img {
-        width: 8.5333vw;
-        height: 8.5333vw;
-        border-radius: 50%;
-        margin-right: 2.1333vw;
+        border-radius: 12px;
         object-fit: cover;
-      }
-      .chat_all_content_text {
-        display: inline-block;
-        border-radius: 1.0667vw 2.1333vw 2.1333vw 2.1333vw;
-        background: rgba(242, 243, 245, 1);
-        padding: 2.1333vw 3.2vw;
-        font-size: 4.2667vw;
-        line-height: 5.8667vw;
-        box-sizing: border-box;
-        max-width: 74.6667vw;
-        word-wrap: break-word;
-        min-height: 10.1333vw;
-        text-align: left;
-      }
-      .chat_all_content_info_time {
-        font-size: 3.2vw;
-        transform: translateY(-1.6vw);
-        color: rgba(175, 175, 175, 1);
-        padding: 0 1.3333vw;
-      }
-    }
-    .overlay-body {
-      display: flex;
-      height: 100%;
-      align-items: center;
-      justify-content: center;
-      .overlay-content {
-        width: 80%;
-      }
-    }
-    .my-message {
-      justify-content: flex-start;
-      flex-direction: row-reverse;
+        cursor: pointer;
+        transition: transform 0.2s ease;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 
-      img {
-        margin-right: 0;
-        margin-left: 2.1333vw;
-      }
+        &.modern-image {
+          border-radius: 12px;
 
-      .chat_all_content_info_block {
-        text-align: right;
-        .chat_all_content_img {
-          width: 26.6667vw;
-          height: 26.6667vw;
-          border-radius: 0%;
-          object-fit: contain;
-          object-position: right center;
-        }
-        .chat_all_content_text {
-          background-color: #3f51b5;
-          color: #fff;
+          &:hover {
+            transform: scale(1.05);
+          }
         }
       }
-      .chat_all_content_info_time {
-        text-align: right;
-      }
+      object-position: left center;
     }
-  }
-  .chat_all_bottom {
-    position: relative;
-    position: fixed;
-    bottom: 0;
-    width: 100vw;
-    height: 65vw;
-    border-radius: 4.2667vw 4.2667vw 0 0;
-    background: rgba(255, 255, 255, 1);
-    box-shadow: 0vw 0vw 2.1333vw rgba(0, 0, 0, 0.08);
-    padding: 4.2667vw 0;
-    box-sizing: border-box;
-    transform: translateY(43.6667vw);
-    .chat_all_unread_message {
-      display: flex;
-      align-items: center;
+    .chat_all_content_info_createtime {
       position: absolute;
-      top: -25%;
-      right: 3%;
-      background-color: #fff;
-      color: #3f51b5;
-      font-size: 3.7333vw;
-      padding: 2.1333vw 4.2667vw;
-      border-radius: 10.3333vw;
-      box-shadow: 0px 0px 2.1333vw rgba(0, 0, 0, 0.08);
-    }
-
-    .chat_bottom_tool_smile {
-      width: 100%;
-      height: 180vw;
-      .checked_tool_smile_title {
-        border-radius: 1.8vw 1.8vw 0 0;
-        background-color: #ccc;
-      }
-      .chat_bottom_tool_smile_title {
-        display: flex;
-        align-items: center;
-        width: 100%;
-        height: 8.8vw;
-        padding-left: 2.6667vw;
-        span {
-          width: 11.8vw;
-          height: 8.8vw;
-          line-height: 8.8vw;
-          font-size: 6.4vw;
-          text-align: center;
-        }
-      }
-      .chat_bottom_tool_smile_list {
-        background-color: #f7f7f7;
-        height: 106.6667vw;
-        .smile_list_item_like {
-          display: flex;
-          flex-wrap: wrap;
-          .smile_list_item_like_add {
-            border: #ccc dashed 0.5333vw;
-            box-sizing: border-box;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            width: 12.8vw;
-            height: 12.8vw;
-            margin: 2.6667vw;
-            position: relative;
-            input {
-              width: 12.8vw;
-              height: 12.8vw;
-              opacity: 0;
-              position: absolute;
-              top: 0;
-              left: 0;
-              z-index: 1;
-            }
-          }
-          .smile_list_item_content {
-            width: 12.8vw;
-            height: 12.8vw;
-            margin: 2.6667vw;
-            overflow: auto;
-            /* 透明滚动条 */
-            &::-webkit-scrollbar {
-              display: none; /* Chrome/Safari/Opera */
-            }
-            .mile_list_item_container {
-              width: 25.6vw;
-              height: 12.8vw;
-              display: flex;
-              img {
-                width: 12.8vw;
-                height: 12.8vw;
-              }
-              .del_smile_list_item {
-                width: 12.8vw;
-                height: 12.8vw;
-                text-align: center;
-                line-height: 12.8vw;
-                background-color: #f92b25;
-                color: #fff;
-                font-weight: 600;
-                font-size: 3.2vw;
-                border-radius: 50%;
-              }
-            }
-          }
-        }
-        .smile_list_item {
-          overflow-y: auto;
-          height: 68vw;
-          width: 94.6667vw;
-          margin: 0 auto;
-          span {
-            display: inline-block;
-            width: 6.4vw;
-            height: 6.4vw;
-            font-size: 6.4vw;
-            margin: 2.6667vw;
-            text-align: center;
-            line-height: 6.4vw;
-          }
-        }
-      }
-    }
-    .chat_all_bottom_tool {
-      display: flex;
-      flex-wrap: wrap;
-      padding: 2.6667vw;
-      background-color: #f7f7f7;
-      .chat_all_bottom_tool_item {
-        width: 23.4667vw;
-        /* height: 23.4667vw; */
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-        color: rgba(175, 175, 175, 1);
-        vertical-align: top;
-        margin-bottom: 2.6667vw;
-        span {
-          font-size: 3.2vw;
-          margin-top: 1.3333vw;
-        }
-        img {
-          width: 35%;
-          height: 35%;
-          padding: 2.6667vw;
-          background-color: #fff;
-          border-radius: 2.6667vw;
-        }
-        &:nth-child(5) {
-          margin-right: 0;
-        }
-      }
-    }
-    .chat_all_bottom_list {
-      display: flex;
-      align-items: center;
-      justify-content: space-evenly;
-      margin-bottom: 4.2667vw;
-      .chat_all_bottom_smile {
-        width: 8.2vw;
-        height: 8.2vw;
-      }
-    }
-
-    textarea {
-      width: 72.2667vw;
-      height: 12.8vw;
-      line-height: 12.8vw;
-      outline: none;
-      border: 0;
-      border-radius: 6.4vw;
-      background: rgba(249, 249, 249, 1);
-      padding: 0 4.2667vw;
-      /* margin-left: 3.2vw; */
-      /* margin-right: 4.2667vw; */
-      box-sizing: border-box;
-      &::placeholder {
-        font-size: 4.2667vw;
-        font-weight: 400;
-        color: rgba(175, 175, 175, 1);
-        text-align: left;
-        vertical-align: top;
-      }
-    }
-  }
-  .chat_all_top {
-    padding: 2.6667vw 6.4vw;
-    box-sizing: border-box;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    height: 14.9333vw;
-    background: rgba(255, 255, 255, 1);
-    box-shadow: 0px 0px 2.1333vw rgba(0, 0, 0, 0.08);
-    .chat_all_top_txt {
-      display: flex;
-      align-items: center;
+      top: 0;
+      font-size: 2.6667vw;
+      left: 50%;
+      transform: translateX(-50%);
+      color: rgba(175, 175, 175, 1);
     }
     img {
       width: 8.5333vw;
       height: 8.5333vw;
       border-radius: 50%;
-      margin-left: 4.2667vw;
       margin-right: 2.1333vw;
       object-fit: cover;
     }
-    .chat_all_top_state {
-      display: flex;
-      flex-direction: column;
-      span {
-        &:nth-child(1) {
-          font-size: 4vw;
-        }
-        &:nth-child(2) {
-          font-size: 3.2vw;
-          color: rgba(70, 209, 145, 1);
-          vertical-align: bottom;
-        }
-        .chat_all_top_dot {
-          display: inline-block;
-          width: 2.1333vw;
-          height: 2.1333vw;
-          background-color: rgba(70, 209, 145, 1);
-          border-radius: 50%;
-          margin-right: 1.0667vw;
-        }
-      }
-    }
-  }
-  font-family: "pingfang";
-  .search_all {
-    position: relative;
-    margin-top: 2.6667vw;
-    .search {
+    .chat_all_content_text {
+      display: inline-block;
+      border-radius: 12px 12px 12px 4px;
+      background: #fff;
+      padding: 2.6667vw 3.7333vw;
+      font-size: 4.2667vw;
+      line-height: 5.8667vw;
       box-sizing: border-box;
-      display: flex;
-      align-items: center;
-      width: 90.1333vw;
-      height: 10.9333vw;
-      border-radius: 5.3333vw;
-      border: 0.2667vw solid rgba(220, 220, 220, 1);
-      background: rgba(255, 255, 255, 1);
-      margin: 0 auto;
-      outline: none;
-      &::placeholder {
-        color: rgba(153, 153, 153, 1);
-        font-size: 3.7333vw;
+      max-width: 74.6667vw;
+      word-wrap: break-word;
+      min-height: 10.1333vw;
+      text-align: left;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      transition: all 0.2s ease;
+
+      &.modern-bubble {
+        background: #fff;
+        border: 1px solid #f0f0f0;
       }
-      padding-left: 12.8vw;
     }
-    .search_img {
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      left: 5.3333vw;
-      width: 4.4453vw;
-      height: 4.4453vw;
-      margin-right: 2.6667vw;
-      margin-left: 5.3333vw;
+    .chat_all_content_info_time {
+      font-size: 3.2vw;
+      transform: translateY(-1.6vw);
+      color: rgba(175, 175, 175, 1);
+      padding: 0 1.3333vw;
     }
   }
-  .qunliao_list {
-    width: 87.2vw;
-    height: 21.3333vw;
-    opacity: 1;
-    border-radius: 2.1333vw;
-    background: rgba(255, 255, 255, 1);
-    box-shadow: 0px 0px 2.1333vw rgba(0, 0, 0, 0.08);
+  .overlay-body {
+    display: flex;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+    .overlay-content {
+      width: 80%;
+    }
+  }
+  .my-message {
+    justify-content: flex-start;
+    flex-direction: row-reverse;
+
+    .avatar-wrapper {
+      margin-left: 2.1333vw;
+      margin-right: 0;
+    }
+
+    .chat_all_content_info_block {
+      text-align: right;
+
+      .chat_all_content_img {
+        border-radius: 12px;
+
+        &.modern-image {
+          object-position: right center;
+        }
+      }
+
+      .chat_all_content_text {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: #fff;
+        border-radius: 12px 12px 4px 12px;
+        border: none;
+        box-shadow: 0 2px 12px rgba(102, 126, 234, 0.3);
+
+        &.modern-bubble {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+      }
+    }
+    .chat_all_content_info_time {
+      text-align: right;
+    }
+  }
+}
+/* 底部输入区域 */
+.chat_all_bottom {
+  position: fixed;
+  bottom: 0;
+  width: 100vw;
+  height: 65vw;
+  border-radius: 20px 20px 0 0;
+  background: #fff;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+  padding: 4.2667vw 0;
+  box-sizing: border-box;
+  transform: translateY(43.6667vw);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &.modern-input-area {
+    background: #fff;
+    border-top: 1px solid #f0f0f0;
+  }
+
+  .chat_all_unread_message {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    .qunliao_list_info {
-      display: flex;
-      align-items: center;
-      img {
-        width: 12.8vw;
-        height: 12.8vw;
-        border-radius: 50%;
-        margin-left: 4.2667vw;
-        margin-right: 3.2vw;
-      }
-      .qunliao_list_info_txt {
-        display: flex;
-        flex-direction: column;
-        position: relative;
-        width: 65vw;
+    position: absolute;
+    top: -15%;
+    right: 3%;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #fff;
+    font-size: 3.7333vw;
+    font-weight: 600;
+    padding: 2.1333vw 4.2667vw;
+    border-radius: 10.3333vw;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    cursor: pointer;
 
-        .chat_all_top_dot {
-          display: inline-block;
-          width: 2.1333vw;
-          height: 2.1333vw;
-          background-color: rgba(70, 209, 145, 1);
-          border-radius: 50%;
-          margin-right: 1.0667vw;
-        }
-        span {
-          &:nth-child(1) {
-            font-size: 4.2667vw;
-            font-weight: 400;
-            color: #000;
-            margin-bottom: 1.0667vw;
-          }
-          &:nth-child(2) {
-            font-size: 3.2vw;
-            font-weight: 400;
-            letter-spacing: 0px;
-            line-height: 4.2667vw;
-            color: rgba(175, 175, 175, 1);
-          }
-          .qunliao_list_info_txt_time {
-            font-size: 3.2vw;
-            font-weight: 400;
-            letter-spacing: 0px;
-            line-height: 4.2667vw;
-            color: rgba(175, 175, 175, 1);
-          }
-        }
+    &.modern-badge {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+
+      &:active {
+        transform: scale(0.95);
       }
-    }
-    .qunliao_list_message {
-      position: absolute;
-      right: 6.6667vw;
-      width: 6.4vw;
-      height: 6.4vw;
-      border-radius: 50%;
-      background-color: #3f51b5;
-      text-align: center;
-      color: #fff;
-      font-size: 3.2vw;
-      line-height: 6.4vw;
-      margin-right: 4.2667vw;
     }
   }
-  .private_qunliao_list {
-    margin-bottom: 2.6667vw;
-    position: relative;
-    .private_qunliao_list_message2 {
-      background-color: red;
-      border-radius: 50%;
+
+  .chat_bottom_tool_smile {
+    width: 100%;
+    height: 180vw;
+    .checked_tool_smile_title {
+      border-radius: 1.8vw 1.8vw 0 0;
+      background-color: #ccc;
     }
-    .private_qunliao_list_message {
-      position: absolute;
-      right: 0vw;
-      width: 6.4vw;
-      height: 6.4vw;
+    .chat_bottom_tool_smile_title {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      height: 8.8vw;
+      padding-left: 2.6667vw;
+      span {
+        width: 11.8vw;
+        height: 8.8vw;
+        line-height: 8.8vw;
+        font-size: 6.4vw;
+        text-align: center;
+      }
+    }
+    .chat_bottom_tool_smile_list {
+      background-color: #f7f7f7;
+      height: 106.6667vw;
+      .smile_list_item_like {
+        display: flex;
+        flex-wrap: wrap;
+        .smile_list_item_like_add {
+          border: #ccc dashed 0.5333vw;
+          box-sizing: border-box;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          width: 12.8vw;
+          height: 12.8vw;
+          margin: 2.6667vw;
+          position: relative;
+          input {
+            width: 12.8vw;
+            height: 12.8vw;
+            opacity: 0;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+          }
+        }
+        .smile_list_item_content {
+          width: 12.8vw;
+          height: 12.8vw;
+          margin: 2.6667vw;
+          overflow: auto;
+          /* 透明滚动条 */
+          &::-webkit-scrollbar {
+            display: none; /* Chrome/Safari/Opera */
+          }
+          .mile_list_item_container {
+            width: 25.6vw;
+            height: 12.8vw;
+            display: flex;
+            img {
+              width: 12.8vw;
+              height: 12.8vw;
+            }
+            .del_smile_list_item {
+              width: 12.8vw;
+              height: 12.8vw;
+              text-align: center;
+              line-height: 12.8vw;
+              background-color: #f92b25;
+              color: #fff;
+              font-weight: 600;
+              font-size: 3.2vw;
+              border-radius: 50%;
+            }
+          }
+        }
+      }
+      .smile_list_item {
+        overflow-y: auto;
+        height: 68vw;
+        width: 94.6667vw;
+        margin: 0 auto;
+        span {
+          display: inline-block;
+          width: 6.4vw;
+          height: 6.4vw;
+          font-size: 6.4vw;
+          margin: 2.6667vw;
+          text-align: center;
+          line-height: 6.4vw;
+        }
+      }
+    }
+  }
+  .chat_all_bottom_tool {
+    display: flex;
+    flex-wrap: wrap;
+    padding: 2.6667vw;
+    background-color: #f7f7f7;
+    .chat_all_bottom_tool_item {
+      width: 23.4667vw;
+      /* height: 23.4667vw; */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       text-align: center;
-      color: #fff;
-      font-size: 3.2vw;
-      line-height: 6.4vw;
-      margin-right: 4.2667vw;
+      color: rgba(175, 175, 175, 1);
+      vertical-align: top;
+      margin-bottom: 2.6667vw;
+      span {
+        font-size: 3.2vw;
+        margin-top: 1.3333vw;
+      }
+      img {
+        width: 35%;
+        height: 35%;
+        padding: 2.6667vw;
+        background-color: #fff;
+        border-radius: 2.6667vw;
+      }
+      &:nth-child(5) {
+        margin-right: 0;
+      }
+    }
+  }
+  .chat_all_bottom_list {
+    display: flex;
+    align-items: center;
+    justify-content: space-evenly;
+    margin-bottom: 4.2667vw;
+    padding: 0 16px;
+
+    .chat_all_bottom_smile {
+      width: 8.2vw;
+      height: 8.2vw;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+
+      &:active {
+        transform: scale(0.9);
+      }
+    }
+  }
+
+  textarea {
+    width: 72.2667vw;
+    height: 12.8vw;
+    line-height: 12.8vw;
+    outline: none;
+    border: 1px solid #e8e8e8;
+    border-radius: 20px;
+    background: #f8f9fa;
+    padding: 0 4.2667vw;
+    box-sizing: border-box;
+    font-size: 4.2667vw;
+    transition: all 0.3s ease;
+    resize: none;
+    overflow: hidden;
+
+    /* 隐藏滚动条 */
+    &::-webkit-scrollbar {
+      display: none;
+    }
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+
+    &:focus {
+      background: #fff;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    &::placeholder {
+      font-size: 4.2667vw;
+      font-weight: 400;
+      color: rgba(175, 175, 175, 1);
+      text-align: left;
+      vertical-align: top;
+    }
+  }
+}
+/* 聊天弹出层顶部栏 */
+.chat_all_top {
+  padding: 3.2vw 6.4vw;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 14.9333vw;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+  color: #fff;
+
+  &.modern-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
+
+  .chat_all_top_txt {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .chat_all_top_state {
+    display: flex;
+    flex-direction: column;
+
+    span {
+      &:nth-child(1) {
+        font-size: 4.2vw;
+        font-weight: 600;
+        color: #fff;
+      }
+      &:nth-child(2) {
+        font-size: 3.2vw;
+        color: rgba(255, 255, 255, 0.9);
+        vertical-align: bottom;
+      }
+
+      .chat_all_top_dot {
+        display: inline-block;
+        width: 2.1333vw;
+        height: 2.1333vw;
+        background: linear-gradient(135deg, #43e97b, #38f9d7);
+        border-radius: 50%;
+        margin-right: 1.0667vw;
+        box-shadow: 0 0 6px rgba(67, 233, 123, 0.5);
+      }
+
+      .chat_all_top_dot_offline {
+        display: inline-block;
+        width: 2.1333vw;
+        height: 2.1333vw;
+        background: #ccc;
+        border-radius: 50%;
+        margin-right: 1.0667vw;
+      }
+    }
+  }
+}
+
+/* 聊天列表卡片 */
+.qunliao_list {
+  width: calc(100% - 24px);
+  height: 21.3333vw;
+  margin: 0 12px 12px;
+  padding: 3.2vw;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 2px 12px rgba(102, 126, 234, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  cursor: pointer;
+
+  .qunliao_list_info {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+
+    .qunliao_list_info_txt {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-width: 0;
+
+      .chat_all_top_dot {
+        display: inline-block;
+        width: 2.1333vw;
+        height: 2.1333vw;
+        background: linear-gradient(135deg, #43e97b, #38f9d7);
+        border-radius: 50%;
+        margin-right: 1.0667vw;
+        box-shadow: 0 0 6px rgba(67, 233, 123, 0.5);
+      }
+
+      span {
+        display: block;
+
+        &:nth-child(1) {
+          font-size: 3.7333vw;
+          font-weight: 600;
+          color: #2c3e50;
+          margin-bottom: 0.8vw;
+        }
+
+        &:nth-child(2) {
+          font-size: 2.9333vw;
+          font-weight: 400;
+          letter-spacing: 0;
+          line-height: 1.4;
+          color: #8c8c8c;
+        }
+      }
+
+      .qunliao_list_info_txt_time {
+        font-size: 2.6667vw;
+        font-weight: 400;
+        letter-spacing: 0;
+        line-height: 3.7333vw;
+        color: rgba(160, 160, 160, 1);
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+
+      .online-status-text {
+        font-size: 2.6667vw;
+        font-weight: 500;
+        padding: 0.5333vw 1.6vw;
+        border-radius: 8px;
+        flex-shrink: 0;
+
+        &.status-online {
+          color: #43e97b;
+          background: rgba(67, 233, 123, 0.1);
+        }
+
+        &.status-offline {
+          color: #999;
+          background: rgba(153, 153, 153, 0.1);
+        }
+      }
+    }
+  }
+
+  .qunliao_list_message {
+    position: absolute;
+    right: 4vw;
+    top: 50%;
+    margin-top: -3.2vw;
+    min-width: 6.4vw;
+    height: 6.4vw;
+    padding: 0 2vw;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+    text-align: center;
+    color: #fff;
+    font-size: 3.2vw;
+    font-weight: 600;
+    line-height: 6.4vw;
+    box-shadow: 0 2px 8px rgba(238, 90, 111, 0.4);
+  }
+}
+
+.private_qunliao_list {
+  .private_qunliao_list_message2 {
+    min-width: 6.4vw;
+    height: 6.4vw;
+    padding: 0 2vw;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+    text-align: center;
+    color: #fff;
+    font-size: 3.2vw;
+    font-weight: 600;
+    line-height: 6.4vw;
+    box-shadow: 0 2px 8px rgba(238, 90, 111, 0.4);
+  }
+
+  .private_qunliao_list_message {
+    position: absolute;
+    right: 4vw;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  /* PC端适配：固定宽度为375px */
+  @media (min-width: 768px) {
+    .chat_all_bottom {
+      width: 375px;
+      left: 50%;
+      transform: translateX(-50%) translateY(43.6667vw);
     }
   }
 }

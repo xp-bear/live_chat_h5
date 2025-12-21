@@ -50,6 +50,10 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes: routes,
+  scrollBehavior(to, from, savedPosition) {
+    // 始终滚动到顶部
+    return { top: 0, behavior: "instant" };
+  },
 });
 
 // 模拟一个检查用户是否登录的方法
